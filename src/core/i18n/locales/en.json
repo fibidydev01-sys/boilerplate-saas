@@ -1,0 +1,140 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "redirecting": "Redirecting...",
+    "authenticating": "Authenticating...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "search": "Search",
+    "loggingIn": "Signing in...",
+    "login": "Sign in",
+    "logout": "Sign out",
+    "comingSoon": "Coming soon",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "auth": {
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "emailPlaceholder": "email@example.com",
+    "passwordPlaceholder": "Enter your password",
+    "forgotPassword": "Forgot password?",
+    "contactAdmin": "Contact Administrator",
+    "invalidCredentials": "Invalid email or password",
+    "loginFailed": "Login failed. Please try again.",
+    "accountNotRegistered": "Account is not registered. Please contact administrator.",
+    "accountDeactivated": "Your account has been deactivated. Please contact administrator.",
+    "genericError": "Something went wrong. Please try again.",
+    "logoutConfirmTitle": "Sign out of Application",
+    "logoutConfirmDescription": "Are you sure you want to sign out of this account?",
+    "logoutConfirmButton": "Sign out",
+    "signInWithEmail": "Sign in with Email",
+    "signInWithGoogle": "Sign in with Google",
+    "orContinueWith": "or continue with",
+    "tabPassword": "Password",
+    "tabMagicLink": "Magic Link",
+    "sendMagicLink": "Send Magic Link",
+    "sendingMagicLink": "Sending...",
+    "magicLinkSent": "A sign-in link has been sent to your email. Check your inbox and click the link to continue.",
+    "callbackError": "Failed to process authentication. Please try again.",
+    "sessionExpired": "Your session has expired. Please sign in again.",
+    "validation": {
+      "emailRequired": "Email is required",
+      "emailInvalid": "Invalid email format",
+      "passwordRequired": "Password is required",
+      "passwordMinLength": "Password must be at least 6 characters"
+    }
+  },
+  "dashboard": {
+    "pageTitle": "Dashboard",
+    "greetingMorning": "Good morning",
+    "greetingAfternoon": "Good afternoon",
+    "greetingEvening": "Good evening",
+    "greetingNight": "Good night",
+    "welcomeMessage": "Welcome to {appName}",
+    "anonymousUser": "User",
+    "featuresTitle": "Features",
+    "features": {
+      "dashboardTitle": "Dashboard",
+      "dashboardDesc": "Activity summary and metrics",
+      "usersTitle": "Users",
+      "usersDesc": "Manage users and permissions",
+      "activityTitle": "Activity",
+      "activityDesc": "System logs and history",
+      "reportsTitle": "Reports",
+      "reportsDesc": "Statistics and analytics"
+    },
+    "underDevelopmentTitle": "System Under Development",
+    "underDevelopmentMessage": "{appName} is currently under development. Features will be available soon. Use the navigation menu to access available pages."
+  },
+  "overview": {
+    "pageTitle": "Overview",
+    "pageSubtitle": "System overview and statistics",
+    "placeholderTitle": "Overview Page",
+    "placeholderMessage": "This page is under development. Statistics and overview will be displayed here."
+  },
+  "profile": {
+    "pageTitle": "My Profile",
+    "pageSubtitle": "Account information and profile settings",
+    "accountInfoTitle": "Account Information",
+    "fullNameLabel": "Full Name",
+    "roleLabel": "Role",
+    "statusLabel": "Account Status",
+    "editComingSoon": "Profile editing feature is under development"
+  },
+  "settings": {
+    "pageTitle": "Settings",
+    "pageSubtitle": "System configuration and preferences",
+    "placeholderTitle": "Settings Page",
+    "placeholderMessage": "This page is under development. System settings will be available here."
+  },
+  "admin": {
+    "pageTitle": "Admin Panel",
+    "pageSubtitle": "Administrator-only access",
+    "loggedInAs": "You are logged in as {name} with the role of {role}",
+    "menuTitle": "Administration Menu",
+    "menu": {
+      "usersTitle": "User Management",
+      "usersDesc": "Manage accounts and user access",
+      "masterDataTitle": "Master Data",
+      "masterDataDesc": "Manage reference data and system configuration",
+      "permissionsTitle": "Permissions",
+      "permissionsDesc": "Configure roles and user permissions"
+    },
+    "placeholderMessage": "Administration features are under development and will be available soon.",
+    "forbiddenTitle": "Access Denied",
+    "forbiddenMessage": "You do not have permission to access this page."
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "overview": "Overview",
+    "profile": "Profile",
+    "settings": "Settings",
+    "admin": "Admin",
+    "menu": "Menu",
+    "administration": "Administration"
+  },
+  "userMenu": {
+    "myProfile": "My Profile"
+  },
+  "roles": {
+    "super_admin": "Super Admin",
+    "admin": "Admin",
+    "editor": "Editor",
+    "viewer": "Viewer",
+    "user": "User"
+  },
+  "offline": {
+    "disconnected": "No internet connection",
+    "reconnected": "Internet connection restored"
+  }
+}

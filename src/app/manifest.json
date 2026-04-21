@@ -1,0 +1,53 @@
+import type { MetadataRoute
+} from "next";
+import { brandingConfig
+} from "@/config";
+
+/**
+ * Dynamic Web App Manifest.
+ *
+ * Next.js auto-exposes ini di /manifest.webmanifest (bukan /manifest.json).
+ * Menggantikan file static public/manifest.json yang hardcoded.
+ *
+ * Semua value dibaca dari brandingConfig → ganti .env.local = ganti manifest.
+ *
+ * Icons path pattern: /branding/icon-{size}.png
+ *   Replace file-nya aja di public/branding/ untuk rebranding.
+ */
+export default function manifest(): MetadataRoute.Manifest {
+  const iconSizes = [
+    48,
+    72,
+    96,
+    144,
+    192,
+    512
+  ] as const;
+
+  return {
+    id: "/",
+    name: brandingConfig.name,
+    short_name: brandingConfig.shortName,
+    description: brandingConfig.description,
+    start_url: "/",
+    scope: "/",
+    display: "standalone",
+    orientation: "portrait-primary",
+    background_color: brandingConfig.theme.backgroundColor,
+    theme_color: brandingConfig.theme.primaryColor,
+    categories: [brandingConfig.meta.category
+    ],
+    lang: brandingConfig.meta.lang,
+    dir: "ltr",
+    icons: iconSizes.map((size) => ({
+      src: `/branding/icon-${size
+      }.png`,
+      sizes: `${size
+      }x${size
+      }`,
+      type: "image/png",
+      // 192 & 512 diwajibkan support "maskable" untuk adaptive icon Android
+      purpose: size >= 192 ? "any maskable": "any",
+    })),
+  };
+}

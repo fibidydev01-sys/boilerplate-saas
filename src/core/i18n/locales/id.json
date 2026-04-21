@@ -1,0 +1,140 @@
+{
+  "common": {
+    "loading": "Memuat...",
+    "redirecting": "Mengalihkan...",
+    "authenticating": "Mengautentikasi...",
+    "save": "Simpan",
+    "cancel": "Batal",
+    "delete": "Hapus",
+    "edit": "Edit",
+    "confirm": "Konfirmasi",
+    "close": "Tutup",
+    "back": "Kembali",
+    "next": "Selanjutnya",
+    "submit": "Kirim",
+    "search": "Cari",
+    "loggingIn": "Masuk...",
+    "login": "Masuk",
+    "logout": "Keluar",
+    "comingSoon": "Segera hadir",
+    "error": "Terjadi kesalahan",
+    "retry": "Coba lagi",
+    "active": "Aktif",
+    "inactive": "Nonaktif"
+  },
+  "auth": {
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "emailPlaceholder": "email@example.com",
+    "passwordPlaceholder": "Masukkan password",
+    "forgotPassword": "Lupa password?",
+    "contactAdmin": "Hubungi Administrator",
+    "invalidCredentials": "Email atau password salah",
+    "loginFailed": "Gagal login. Silakan coba lagi.",
+    "accountNotRegistered": "Akun tidak terdaftar dalam sistem. Hubungi administrator.",
+    "accountDeactivated": "Akun Anda telah dinonaktifkan. Hubungi administrator.",
+    "genericError": "Terjadi kesalahan. Silakan coba lagi.",
+    "logoutConfirmTitle": "Keluar dari Aplikasi",
+    "logoutConfirmDescription": "Apakah Anda yakin ingin keluar dari akun ini?",
+    "logoutConfirmButton": "Keluar",
+    "signInWithEmail": "Masuk dengan Email",
+    "signInWithGoogle": "Masuk dengan Google",
+    "orContinueWith": "atau lanjut dengan",
+    "tabPassword": "Password",
+    "tabMagicLink": "Magic Link",
+    "sendMagicLink": "Kirim Magic Link",
+    "sendingMagicLink": "Mengirim...",
+    "magicLinkSent": "Link masuk telah dikirim ke email Anda. Periksa inbox dan klik link untuk melanjutkan.",
+    "callbackError": "Gagal memproses autentikasi. Silakan coba lagi.",
+    "sessionExpired": "Sesi Anda telah berakhir. Silakan masuk kembali.",
+    "validation": {
+      "emailRequired": "Email wajib diisi",
+      "emailInvalid": "Format email tidak valid",
+      "passwordRequired": "Password wajib diisi",
+      "passwordMinLength": "Password minimal 6 karakter"
+    }
+  },
+  "dashboard": {
+    "pageTitle": "Dashboard",
+    "greetingMorning": "Selamat pagi",
+    "greetingAfternoon": "Selamat siang",
+    "greetingEvening": "Selamat sore",
+    "greetingNight": "Selamat malam",
+    "welcomeMessage": "Selamat datang di {appName}",
+    "anonymousUser": "Pengguna",
+    "featuresTitle": "Fitur Sistem",
+    "features": {
+      "dashboardTitle": "Dashboard",
+      "dashboardDesc": "Ringkasan aktivitas dan metrik",
+      "usersTitle": "Pengguna",
+      "usersDesc": "Kelola pengguna dan hak akses",
+      "activityTitle": "Aktivitas",
+      "activityDesc": "Log dan riwayat sistem",
+      "reportsTitle": "Laporan",
+      "reportsDesc": "Statistik dan analitik"
+    },
+    "underDevelopmentTitle": "Sistem Sedang Dikembangkan",
+    "underDevelopmentMessage": "{appName} sedang dalam tahap pengembangan. Fitur-fitur akan segera tersedia. Gunakan menu navigasi untuk mengakses halaman yang tersedia."
+  },
+  "overview": {
+    "pageTitle": "Overview",
+    "pageSubtitle": "Ringkasan dan statistik sistem",
+    "placeholderTitle": "Halaman Overview",
+    "placeholderMessage": "Halaman ini sedang dalam pengembangan. Statistik dan ringkasan akan ditampilkan di sini."
+  },
+  "profile": {
+    "pageTitle": "Profil Saya",
+    "pageSubtitle": "Informasi akun dan pengaturan profil",
+    "accountInfoTitle": "Informasi Akun",
+    "fullNameLabel": "Nama Lengkap",
+    "roleLabel": "Peran",
+    "statusLabel": "Status Akun",
+    "editComingSoon": "Fitur edit profil sedang dalam pengembangan"
+  },
+  "settings": {
+    "pageTitle": "Pengaturan",
+    "pageSubtitle": "Konfigurasi dan preferensi sistem",
+    "placeholderTitle": "Halaman Pengaturan",
+    "placeholderMessage": "Halaman ini sedang dalam pengembangan. Pengaturan sistem akan tersedia di sini."
+  },
+  "admin": {
+    "pageTitle": "Panel Admin",
+    "pageSubtitle": "Akses khusus administrator sistem",
+    "loggedInAs": "Anda login sebagai {name} dengan peran {role}",
+    "menuTitle": "Menu Administrasi",
+    "menu": {
+      "usersTitle": "Manajemen Pengguna",
+      "usersDesc": "Kelola akun dan hak akses pengguna sistem",
+      "masterDataTitle": "Data Master",
+      "masterDataDesc": "Kelola data referensi dan konfigurasi sistem",
+      "permissionsTitle": "Hak Akses",
+      "permissionsDesc": "Atur peran dan izin pengguna"
+    },
+    "placeholderMessage": "Fitur administrasi sedang dalam pengembangan dan akan segera tersedia.",
+    "forbiddenTitle": "Akses Ditolak",
+    "forbiddenMessage": "Anda tidak memiliki izin untuk mengakses halaman ini."
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "overview": "Overview",
+    "profile": "Profil",
+    "settings": "Pengaturan",
+    "admin": "Admin",
+    "menu": "Menu",
+    "administration": "Administrasi"
+  },
+  "userMenu": {
+    "myProfile": "Profil Saya"
+  },
+  "roles": {
+    "super_admin": "Super Admin",
+    "admin": "Admin",
+    "editor": "Editor",
+    "viewer": "Viewer",
+    "user": "Pengguna"
+  },
+  "offline": {
+    "disconnected": "Tidak ada koneksi internet",
+    "reconnected": "Koneksi internet tersambung kembali"
+  }
+}

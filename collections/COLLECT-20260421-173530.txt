@@ -1,0 +1,5268 @@
+################################################################
+##  BOILERPLATE CLIENT-SERVER — SOURCE COLLECTION
+##  Generated : 2026-04-21 17:35:30
+##  Selection : 20
+##  Skipped   : src/components/ui/
+################################################################
+
+
+################################################################
+##  app/
+################################################################
+
+
+================================================
+FILE: src/app/(auth)/layout.tsx
+Lines: 12
+================================================
+
+export default function AuthLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-background to-primary/5 p-4">
+      <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
+      {children}
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/app/(auth)/login/page.tsx
+Lines: 43
+================================================
+
+import { redirect } from "next/navigation";
+import { createClient } from "@/core/lib/supabase/server";
+import { LoginForm } from "@/core/auth";
+import { fetchActiveProfile } from "@/core/auth/services";
+import {
+  appConfig,
+  brandingConfig,
+  resolvePostLoginRedirect,
+} from "@/config";
+import { t } from "@/core/i18n";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: t("common.login"),
+  description: t("dashboard.welcomeMessage", { appName: brandingConfig.name }),
+};
+
+interface LoginPageProps {
+  searchParams: Promise<{ returnTo?: string; error?: string }>;
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = await searchParams;
+  const returnTo = params.returnTo ?? null;
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Sudah authenticated → role-aware redirect (respect returnTo kalau ada)
+  if (user) {
+    const { profile } = await fetchActiveProfile(supabase, user.id);
+    const dest = resolvePostLoginRedirect(
+      profile?.role ?? undefined,
+      returnTo
+    );
+    redirect(dest);
+  }
+
+  return <LoginForm returnTo={returnTo} />;
+}
+
+
+
+================================================
+FILE: src/app/(dashboard)/admin/page.tsx
+Lines: 149
+================================================
+
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useAuth, usePermission } from "@/core/auth/hooks";
+import {
+  ShieldCheck,
+  Construction,
+  Users,
+  Database,
+  Lock,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FullPageLoader } from "@/core/components";
+import { appConfig } from "@/config";
+import { t, type TranslationKey } from "@/core/i18n";
+
+export default function AdminPage() {
+  const router = useRouter();
+  const { user, hasFetched } = useAuth();
+  const canAccessAdmin = usePermission("admin:access");
+
+  useEffect(() => {
+    if (hasFetched && !canAccessAdmin) {
+      router.push(appConfig.auth.postLoginRedirect);
+    }
+  }, [hasFetched, canAccessAdmin, router]);
+
+  if (!hasFetched) return <FullPageLoader text={t("common.loading")} />;
+  if (!canAccessAdmin) return <FullPageLoader text={t("common.redirecting")} />;
+
+  const adminMenus: Array<{
+    titleKey: TranslationKey;
+    descKey: TranslationKey;
+    icon: typeof Users;
+    color: string;
+    bg: string;
+  }> = [
+    {
+      titleKey: "admin.menu.usersTitle",
+      descKey: "admin.menu.usersDesc",
+      icon: Users,
+      color: "text-blue-600",
+      bg: "bg-blue-50",
+    },
+    {
+      titleKey: "admin.menu.masterDataTitle",
+      descKey: "admin.menu.masterDataDesc",
+      icon: Database,
+      color: "text-purple-600",
+      bg: "bg-purple-50",
+    },
+    {
+      titleKey: "admin.menu.permissionsTitle",
+      descKey: "admin.menu.permissionsDesc",
+      icon: Lock,
+      color: "text-orange-600",
+      bg: "bg-orange-50",
+    },
+  ];
+
+  // Role label — i18n-based dengan fallback humanize
+  const roleLabel = (() => {
+    if (!user?.role) return "";
+    const key = `roles.${user.role}` as TranslationKey;
+    const translated = t(key);
+    return translated === key ? user.role.replace(/_/g, " ") : translated;
+  })();
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+          <ShieldCheck className="h-5 w-5 text-primary" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold">{t("admin.pageTitle")}</h1>
+          <p className="text-muted-foreground text-sm">
+            {t("admin.pageSubtitle")}
+          </p>
+        </div>
+      </div>
+
+      {/* Admin info */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="pt-4 pb-4">
+          <div className="flex items-center gap-2 text-sm text-foreground">
+            <ShieldCheck className="h-4 w-4 flex-shrink-0 text-primary" />
+            <span>
+              {t("admin.loggedInAs", {
+                name: user?.full_name ?? "",
+                role: roleLabel,
+              })}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Admin Menu Cards */}
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+          {t("admin.menuTitle")}
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {adminMenus.map((menu) => {
+            const Icon = menu.icon;
+            return (
+              <Card
+                key={menu.titleKey}
+                className="border hover:shadow-md transition-shadow cursor-pointer opacity-60"
+              >
+                <CardHeader className="pb-2">
+                  <div
+                    className={`w-10 h-10 rounded-xl ${menu.bg} flex items-center justify-center mb-2`}
+                  >
+                    <Icon className={`h-5 w-5 ${menu.color}`} />
+                  </div>
+                  <CardTitle className="text-sm font-semibold">
+                    {t(menu.titleKey)}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">
+                    {t(menu.descKey)}
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground">
+                    <Construction className="h-3 w-3" />
+                    {t("common.comingSoon")}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Placeholder notice */}
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center justify-center py-10 gap-3">
+          <Construction className="h-6 w-6 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground text-center max-w-sm">
+            {t("admin.placeholderMessage")}
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/app/(dashboard)/dashboard/page.tsx
+Lines: 155
+================================================
+
+"use client";
+
+import { useAuthStore } from "@/core/auth/store";
+import {
+  LayoutDashboard,
+  Users,
+  Activity,
+  TrendingUp,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { brandingConfig } from "@/config";
+import { t, type TranslationKey } from "@/core/i18n";
+
+export default function DashboardPage() {
+  const user = useAuthStore((state) => state.user);
+
+  const greeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 11) return t("dashboard.greetingMorning");
+    if (hour < 15) return t("dashboard.greetingAfternoon");
+    if (hour < 18) return t("dashboard.greetingEvening");
+    return t("dashboard.greetingNight");
+  };
+
+  const quickInfo: Array<{
+    titleKey: TranslationKey;
+    descKey: TranslationKey;
+    icon: typeof LayoutDashboard;
+    color: string;
+    bg: string;
+  }> = [
+      {
+        titleKey: "dashboard.features.dashboardTitle",
+        descKey: "dashboard.features.dashboardDesc",
+        icon: LayoutDashboard,
+        color: "text-green-600",
+        bg: "bg-green-50",
+      },
+      {
+        titleKey: "dashboard.features.usersTitle",
+        descKey: "dashboard.features.usersDesc",
+        icon: Users,
+        color: "text-blue-600",
+        bg: "bg-blue-50",
+      },
+      {
+        titleKey: "dashboard.features.activityTitle",
+        descKey: "dashboard.features.activityDesc",
+        icon: Activity,
+        color: "text-purple-600",
+        bg: "bg-purple-50",
+      },
+      {
+        titleKey: "dashboard.features.reportsTitle",
+        descKey: "dashboard.features.reportsDesc",
+        icon: TrendingUp,
+        color: "text-orange-600",
+        bg: "bg-orange-50",
+      },
+    ];
+
+  // Role label — i18n-based dengan fallback humanize
+  const roleLabel = (() => {
+    if (!user?.role) return t("dashboard.anonymousUser");
+    const key = `roles.${user.role}` as TranslationKey;
+    const translated = t(key);
+    return translated === key ? user.role.replace(/_/g, " ") : translated;
+  })();
+
+  return (
+    <div className="space-y-8">
+      {/* Welcome Banner */}
+      <div className="rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-6 md:p-8 text-primary-foreground shadow-lg">
+        <div className="flex items-start justify-between">
+          <div className="space-y-1">
+            <p className="text-primary-foreground/80 text-sm font-medium">
+              {greeting()},
+            </p>
+            <h1 className="text-2xl md:text-3xl font-bold">
+              {user?.full_name ?? t("dashboard.anonymousUser")}
+            </h1>
+            <p className="text-primary-foreground/80 text-sm mt-2">
+              {t("dashboard.welcomeMessage", { appName: brandingConfig.name })}
+            </p>
+          </div>
+          <div className="hidden md:flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
+            <LayoutDashboard className="h-8 w-8 text-white" />
+          </div>
+        </div>
+
+        {/* Role badge */}
+        <div className="mt-4">
+          <span className="inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white capitalize">
+            {roleLabel}
+          </span>
+        </div>
+      </div>
+
+      {/* Quick Info Cards */}
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+          {t("dashboard.featuresTitle")}
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {quickInfo.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Card
+                key={item.titleKey}
+                className="border hover:shadow-md transition-shadow"
+              >
+                <CardHeader className="pb-2">
+                  <div
+                    className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center mb-2`}
+                  >
+                    <Icon className={`h-5 w-5 ${item.color}`} />
+                  </div>
+                  <CardTitle className="text-sm font-semibold">
+                    {t(item.titleKey)}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">
+                    {t(item.descKey)}
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Info Box */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="pt-6">
+          <div className="flex gap-3">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <LayoutDashboard className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                {t("dashboard.underDevelopmentTitle")}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {t("dashboard.underDevelopmentMessage", {
+                  appName: brandingConfig.name,
+                })}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/app/(dashboard)/layout.tsx
+Lines: 129
+================================================
+
+"use client";
+
+import { useEffect, useRef } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+import { useAuth } from "@/core/auth/hooks";
+import { useAuthStore } from "@/core/auth/store";
+import { createClient } from "@/core/lib/supabase/client";
+import { FullPageLoader } from "@/core/components";
+import { MobileBottomNav, AppSidebar, UserMenu } from "@/core/layout";
+import { appConfig, brandingConfig } from "@/config";
+import { t } from "@/core/i18n";
+
+/**
+ * DashboardLayout — auth guard + layout utama.
+ *
+ * Tanggung jawab:
+ * 1. Fetch user saat mount (di-handle internal oleh useAuth)
+ * 2. onAuthStateChange listener TUNGGAL untuk seluruh app
+ * 3. Redirect ke login + set returnTo kalau tidak authenticated
+ * 4. Render sidebar + header + mobile nav
+ *
+ * Migration note: sebelumnya pake granular selectors langsung dari
+ * useAuthStore. Sekarang pake useAuth facade. Granular subscription
+ * tetep terjadi karena facade di dalamnya pake selector per field —
+ * jadi re-render behavior identik.
+ */
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const authListenerSetup = useRef(false);
+
+  const { user, isLoading, hasFetched, fetchUser } = useAuth();
+
+  // Reset — akses langsung dari store (bukan action yang sering dipake)
+  const reset = useAuthStore((state) => state.reset);
+
+  // Auth state listener — satu-satunya di seluruh app
+  useEffect(() => {
+    if (authListenerSetup.current) return;
+    authListenerSetup.current = true;
+
+    const supabase = createClient();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        reset();
+        router.push(appConfig.auth.postLogoutRedirect);
+      } else if (event === "SIGNED_IN" && session) {
+        const state = useAuthStore.getState();
+        if (!state.user) {
+          fetchUser();
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      authListenerSetup.current = false;
+    };
+  }, [router, reset, fetchUser]);
+
+  // Redirect guard — set returnTo supaya setelah login balik ke halaman asal
+  useEffect(() => {
+    if (hasFetched && !isLoading && !user) {
+      const loginUrl = new URL(
+        appConfig.auth.postLogoutRedirect,
+        window.location.origin
+      );
+      if (pathname && pathname !== "/") {
+        loginUrl.searchParams.set("returnTo", pathname);
+      }
+      router.push(loginUrl.pathname + loginUrl.search);
+    }
+  }, [hasFetched, isLoading, user, router, pathname]);
+
+  if (!hasFetched) {
+    return <FullPageLoader text={t("common.loading")} />;
+  }
+
+  if (isLoading) {
+    return <FullPageLoader text={t("common.authenticating")} />;
+  }
+
+  if (!user) {
+    return <FullPageLoader text={t("common.redirecting")} />;
+  }
+
+  return (
+    <div className="flex min-h-screen">
+      <AppSidebar />
+
+      <div className="flex flex-1 flex-col md:ml-64">
+        <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background px-4">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="relative w-8 h-8">
+              <Image
+                src={brandingConfig.assets.logoSmall}
+                alt={brandingConfig.shortName}
+                fill
+                className="object-contain"
+              />
+            </div>
+            <span className="font-semibold text-sm md:text-base">
+              {brandingConfig.shortName}
+            </span>
+          </Link>
+
+          <div className="flex-1" />
+
+          <UserMenu />
+        </header>
+
+        <main className="flex-1 overflow-auto pb-20 md:pb-0">
+          <div className="container mx-auto p-4 md:p-6">{children}</div>
+        </main>
+      </div>
+
+      <MobileBottomNav />
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/app/(dashboard)/overview/page.tsx
+Lines: 40
+================================================
+
+"use client";
+
+import { BarChart3, Construction } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { t } from "@/core/i18n";
+
+export default function OverviewPage() {
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold">{t("overview.pageTitle")}</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          {t("overview.pageSubtitle")}
+        </p>
+      </div>
+
+      {/* Placeholder */}
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center justify-center py-20 gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
+            <BarChart3 className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <div className="text-center space-y-1">
+            <p className="font-semibold text-foreground">
+              {t("overview.placeholderTitle")}
+            </p>
+            <p className="text-sm text-muted-foreground max-w-xs">
+              {t("overview.placeholderMessage")}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted px-3 py-1.5 rounded-full">
+            <Construction className="h-3 w-3" />
+            {t("common.comingSoon")}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/app/(dashboard)/profile/page.tsx
+Lines: 114
+================================================
+
+"use client";
+
+import { useAuthStore } from "@/core/auth/store";
+import { User, Mail, Shield, Construction } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { getInitials } from "@/core/lib/utils";
+import { t, type TranslationKey } from "@/core/i18n";
+
+export default function ProfilePage() {
+  const user = useAuthStore((state) => state.user);
+
+  if (!user) return null;
+
+  // Role label — i18n-based dengan fallback humanize
+  const roleLabel = (() => {
+    const key = `roles.${user.role}` as TranslationKey;
+    const translated = t(key);
+    return translated === key ? user.role.replace(/_/g, " ") : translated;
+  })();
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold">{t("profile.pageTitle")}</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          {t("profile.pageSubtitle")}
+        </p>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-3">
+        {/* Profile Card */}
+        <Card className="md:col-span-1">
+          <CardContent className="flex flex-col items-center py-8 gap-4">
+            <Avatar className="h-20 w-20">
+              <AvatarFallback className="text-xl bg-primary/10 text-primary font-semibold">
+                {getInitials(user.full_name)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="text-center">
+              <p className="font-bold text-lg">{user.full_name}</p>
+              <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-medium mt-1 capitalize">
+                {roleLabel}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Info Card */}
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">
+              {t("profile.accountInfoTitle")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+              <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center border">
+                <User className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {t("profile.fullNameLabel")}
+                </p>
+                <p className="text-sm font-medium">{user.full_name}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+              <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center border">
+                <Shield className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {t("profile.roleLabel")}
+                </p>
+                <p className="text-sm font-medium capitalize">{roleLabel}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+              <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center border">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {t("profile.statusLabel")}
+                </p>
+                <p className="text-sm font-medium">
+                  {user.is_active ? (
+                    <span className="text-green-600">{t("common.active")}</span>
+                  ) : (
+                    <span className="text-red-600">{t("common.inactive")}</span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Edit Profile - Coming Soon */}
+        <Card className="md:col-span-3 border-dashed">
+          <CardContent className="flex items-center justify-center py-10 gap-3">
+            <Construction className="h-5 w-5 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              {t("profile.editComingSoon")}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/app/(dashboard)/settings/page.tsx
+Lines: 40
+================================================
+
+"use client";
+
+import { Settings, Construction } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { t } from "@/core/i18n";
+
+export default function SettingsPage() {
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold">{t("settings.pageTitle")}</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          {t("settings.pageSubtitle")}
+        </p>
+      </div>
+
+      {/* Placeholder */}
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center justify-center py-20 gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
+            <Settings className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <div className="text-center space-y-1">
+            <p className="font-semibold text-foreground">
+              {t("settings.placeholderTitle")}
+            </p>
+            <p className="text-sm text-muted-foreground max-w-xs">
+              {t("settings.placeholderMessage")}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted px-3 py-1.5 rounded-full">
+            <Construction className="h-3 w-3" />
+            {t("common.comingSoon")}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/app/api/auth/callback/route.ts
+Lines: 62
+================================================
+
+import { createClient } from "@/core/lib/supabase/server";
+import { fetchActiveProfile } from "@/core/auth/services";
+import { appConfig, resolvePostLoginRedirect } from "@/config";
+import { NextResponse } from "next/server";
+
+/**
+ * OAuth / Magic Link callback handler.
+ *
+ * Flow:
+ *   1. Exchange `code` ke session
+ *   2. Fetch profile untuk dapet role
+ *   3. Resolve redirect destination: `next` (returnTo) > role-based > global
+ *
+ * Query params:
+ *   - code : dari Supabase OAuth/OTP flow (required)
+ *   - next : returnTo path, sama konvensi dengan proxy middleware
+ */
+export async function GET(request: Request) {
+  const { searchParams, origin } = new URL(request.url);
+  const code = searchParams.get("code");
+  const next = searchParams.get("next");
+
+  // Base redirect helper — hormati forwarded host di production
+  const buildRedirect = (path: string) => {
+    const forwardedHost = request.headers.get("x-forwarded-host");
+    const isLocalEnv = process.env.NODE_ENV === "development";
+
+    if (isLocalEnv) return NextResponse.redirect(`${origin}${path}`);
+    if (forwardedHost) return NextResponse.redirect(`https://${forwardedHost}${path}`);
+    return NextResponse.redirect(`${origin}${path}`);
+  };
+
+  if (!code) {
+    return buildRedirect(
+      `${appConfig.auth.postLogoutRedirect}?error=auth_callback_error`
+    );
+  }
+
+  const supabase = await createClient();
+  const { error: exchangeError, data } =
+    await supabase.auth.exchangeCodeForSession(code);
+
+  if (exchangeError || !data.session) {
+    return buildRedirect(
+      `${appConfig.auth.postLogoutRedirect}?error=auth_callback_error`
+    );
+  }
+
+  // Ambil profile untuk role-based redirect
+  const { profile } = await fetchActiveProfile(supabase, data.session.user.id);
+
+  // Kalau profile gak ada atau non-active — sign out & kirim balik ke login
+  if (!profile) {
+    await supabase.auth.signOut();
+    return buildRedirect(
+      `${appConfig.auth.postLogoutRedirect}?error=account_not_registered`
+    );
+  }
+
+  const dest = resolvePostLoginRedirect(profile.role, next);
+  return buildRedirect(dest);
+}
+
+
+
+================================================
+FILE: src/app/layout.tsx
+Lines: 102
+================================================
+
+import type { Metadata, Viewport } from "next";
+import "./globals.css";
+import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/core/auth";
+import { OfflineDetector } from "@/core/components";
+import { appConfig, brandingConfig } from "@/config";
+
+export const metadata: Metadata = {
+  title: {
+    default: brandingConfig.name,
+    template: `%s | ${brandingConfig.shortName}`,
+  },
+  description: brandingConfig.description,
+
+  // Note: manifest tidak perlu explicit — Next.js auto-discover
+  // `src/app/manifest.ts` dan expose di /manifest.webmanifest.
+
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: brandingConfig.shortName,
+  },
+
+  icons: {
+    icon: [
+      { url: brandingConfig.assets.favicon },
+      { url: brandingConfig.assets.logoSmall, sizes: "96x96", type: "image/png" },
+      { url: brandingConfig.assets.logo, sizes: "192x192", type: "image/png" },
+    ],
+    apple: [
+      {
+        url: brandingConfig.assets.appleTouchIcon,
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
+  },
+
+  formatDetection: {
+    telephone: false,
+    email: false,
+    address: false,
+  },
+
+  applicationName: brandingConfig.name,
+  authors: brandingConfig.meta.author
+    ? [{ name: brandingConfig.meta.author }]
+    : undefined,
+  keywords: brandingConfig.meta.keywords,
+  category: brandingConfig.meta.category,
+};
+
+export const viewport: Viewport = {
+  themeColor: brandingConfig.theme.themeColorMeta,
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang={appConfig.locale.default} suppressHydrationWarning>
+      <head>
+        <link
+          rel="apple-touch-icon"
+          href={brandingConfig.assets.appleTouchIcon}
+        />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta
+          name="apple-mobile-web-app-status-bar-style"
+          content="default"
+        />
+        <meta
+          name="apple-mobile-web-app-title"
+          content={brandingConfig.shortName}
+        />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta
+          name="msapplication-TileColor"
+          content={brandingConfig.theme.themeColorMeta}
+        />
+        <link
+          rel="preconnect"
+          href={process.env.NEXT_PUBLIC_SUPABASE_URL}
+          crossOrigin="anonymous"
+        />
+      </head>
+      <body className="font-sans antialiased">
+        <AuthProvider>
+          {children}
+          <OfflineDetector />
+        </AuthProvider>
+        <Toaster position="top-center" richColors />
+      </body>
+    </html>
+  );
+}
+
+
+================================================
+FILE: src/app/page.tsx
+Lines: 18
+================================================
+
+import { redirect } from "next/navigation";
+import { createClient } from "@/core/lib/supabase/server";
+import { appConfig } from "@/config";
+import { ROUTES } from "@/core/constants";
+
+export default async function HomePage() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect(ROUTES.LOGIN);
+  }
+
+  redirect(appConfig.auth.postLoginRedirect);
+}
+
+
+
+################################################################
+##  config/
+################################################################
+
+
+================================================
+FILE: src/config/app.config.ts
+Lines: 153
+================================================
+
+/**
+ * Application Configuration
+ *
+ * Otak boilerplate. Semua behavior (selain branding) dikontrol dari sini.
+ *
+ * 4 area utama:
+ * 1. modules  → toggle 8 boilerplate on/off
+ * 2. auth     → role system, providers, redirect, role-based fallback
+ * 3. payment  → Stripe mode & enablement
+ * 4. locale   → i18n settings
+ */
+
+export const appConfig = {
+  /**
+   * 8 Boilerplate Modules.
+   * Enable module yang dibutuhin, disable yang enggak.
+   *
+   * Tiap module idealnya self-contained di src/modules/<name>/.
+   */
+  modules: {
+    admin: { enabled: true, path: "/admin" },
+    saas: { enabled: false, path: "/workspace" },
+    landing: { enabled: false, path: "/" },
+    commerce: { enabled: false, path: "/shop" },
+    blog: { enabled: false, path: "/blog" },
+    project: { enabled: false, path: "/projects" },
+    forum: { enabled: false, path: "/forum" },
+    chat: { enabled: false, path: "/chat" },
+  },
+
+  /**
+   * Auth configuration.
+   *
+   * providers      → auth method yang diaktifkan. LoginForm render tombol
+   *                   sesuai list ini. Urutan di array = urutan render.
+   * roles          → semua role yang valid di sistem (UserRole type).
+   * adminRoles     → role yang punya akses admin panel (legacy compat;
+   *                   permission sebenernya di permissions.config.ts).
+   * defaultRole    → role otomatis saat user baru register.
+   * postLoginRedirect  → fallback global kalau returnTo kosong & role
+   *                      tidak punya override di roleRedirects.
+   * roleRedirects  → per-role landing page setelah login. Admin-role →
+   *                   /admin, role lain fallback ke postLoginRedirect.
+   *                   Kalau ada returnTo param → returnTo menang.
+   * postLogoutRedirect → kemana redirect setelah logout (juga = login page).
+   */
+  auth: {
+    providers: ["email", "google", "magic-link"] as const,
+    roles: ["super_admin", "admin", "editor", "viewer", "user"] as const,
+    adminRoles: ["super_admin", "admin"] as const,
+    defaultRole: "user" as const,
+    postLoginRedirect: "/dashboard",
+    postLogoutRedirect: "/login",
+    roleRedirects: {
+      super_admin: "/admin",
+      admin: "/admin",
+    } as Partial<Record<string, string>>,
+  },
+
+  /**
+   * Payment (Stripe) configuration.
+   *
+   * enabled  → master switch, kalau false semua payment flow di-skip
+   * mode     → "subscription" | "one-time" | "both"
+   * provider → untuk sekarang cuma "stripe"
+   */
+  payment: {
+    enabled: false,
+    mode: "subscription" as "subscription" | "one-time" | "both",
+    provider: "stripe" as const,
+  },
+
+  /**
+   * Locale / i18n.
+   *
+   * default    → bahasa default aplikasi
+   * available  → daftar bahasa yang di-support (harus ada file JSON-nya)
+   */
+  locale: {
+    default: "id",
+    available: ["id", "en"] as const,
+  },
+} as const;
+
+export type AppConfig = typeof appConfig;
+export type UserRole = (typeof appConfig.auth.roles)[number];
+export type AdminRole = (typeof appConfig.auth.adminRoles)[number];
+export type AuthProvider = (typeof appConfig.auth.providers)[number];
+export type Locale = (typeof appConfig.locale.available)[number];
+export type ModuleName = keyof typeof appConfig.modules;
+export type PaymentMode = typeof appConfig.payment.mode;
+
+/**
+ * Helper: cek apakah role termasuk admin.
+ *
+ * LEGACY COMPAT: ini equivalent ke `can(role, "admin:access")` di sistem
+ * permission baru. Tetap di-export karena masih dipake di beberapa tempat
+ * (sidebar, mobile-nav). New code: pakai `can()` dari @/core/auth/lib.
+ */
+export function isAdminRole(role: string): boolean {
+  return (appConfig.auth.adminRoles as readonly string[]).includes(role);
+}
+
+/**
+ * Helper: cek apakah module enabled.
+ */
+export function isModuleEnabled(name: ModuleName): boolean {
+  return appConfig.modules[name].enabled;
+}
+
+/**
+ * Helper: ambil semua path module yang enabled.
+ */
+export function getEnabledModulePaths(): string[] {
+  return Object.values(appConfig.modules)
+    .filter((m) => m.enabled)
+    .map((m) => m.path);
+}
+
+/**
+ * Helper: tentuin destination redirect setelah login.
+ *
+ * Priority:
+ *   1. returnTo (kalau valid path internal)
+ *   2. roleRedirects[role] (admin → /admin, dst)
+ *   3. postLoginRedirect (global fallback)
+ *
+ * returnTo di-validate: harus relative path ("/...") & bukan login/logout
+ * (biar gak loop). External URL di-reject untuk cegah open-redirect.
+ */
+export function resolvePostLoginRedirect(
+  role: string | undefined,
+  returnTo?: string | null
+): string {
+  if (returnTo && isSafeInternalPath(returnTo)) {
+    return returnTo;
+  }
+  if (role) {
+    const roleDest = appConfig.auth.roleRedirects[role];
+    if (roleDest) return roleDest;
+  }
+  return appConfig.auth.postLoginRedirect;
+}
+
+function isSafeInternalPath(path: string): boolean {
+  if (typeof path !== "string") return false;
+  if (!path.startsWith("/")) return false;
+  // Block protocol-relative (//evil.com) & backslash tricks
+  if (path.startsWith("//") || path.startsWith("/\\")) return false;
+  // Jangan redirect ke login/logout → cegah loop
+  if (path.startsWith(appConfig.auth.postLogoutRedirect)) return false;
+  return true;
+}
+
+
+
+================================================
+FILE: src/config/branding.config.ts
+Lines: 95
+================================================
+
+/**
+ * Branding Configuration
+ *
+ * Single source of truth untuk semua yang berhubungan dengan identitas aplikasi.
+ * Semua value di sini WAJIB bisa di-override via environment variable.
+ *
+ * Prinsip: ganti .env = ganti identitas. Zero code change.
+ */
+
+export const brandingConfig = {
+  /**
+   * Nama lengkap aplikasi. Muncul di:
+   * - Browser tab title
+   * - Meta tags
+   * - PWA install prompt
+   * - Welcome messages
+   */
+  name: process.env.NEXT_PUBLIC_APP_NAME ?? "My App",
+
+  /**
+   * Versi pendek dari nama. Muncul di:
+   * - Sidebar logo text
+   * - Header
+   * - PWA short_name (home screen icon)
+   * - Apple Web App title
+   */
+  shortName: process.env.NEXT_PUBLIC_APP_SHORT_NAME ?? "App",
+
+  /**
+   * Deskripsi aplikasi. Muncul di:
+   * - Meta description (SEO)
+   * - Login page subtitle
+   * - PWA description
+   */
+  description:
+    process.env.NEXT_PUBLIC_APP_DESCRIPTION ?? "A modern web application",
+
+  /**
+   * Tagline pendek untuk marketing/welcome.
+   */
+  tagline: process.env.NEXT_PUBLIC_APP_TAGLINE ?? "Welcome",
+
+  /**
+   * Asset paths. Replace file di public/branding/ untuk ganti.
+   *
+   * Required files (untuk PWA + fallback icons):
+   *   /branding/logo.png              — 192x192 (main UI logo)
+   *   /branding/logo-sm.png           — 96x96  (compact UI logo)
+   *   /branding/favicon.ico           — multi-size favicon
+   *   /branding/apple-touch-icon.png  — 180x180 (iOS home screen)
+   *   /branding/icon-{48,72,96,144,192,512}.png — PWA manifest icons
+   */
+  assets: {
+    logo: "/branding/logo.png",
+    logoSmall: "/branding/logo-sm.png",
+    favicon: "/branding/favicon.ico",
+    appleTouchIcon: "/branding/apple-touch-icon.png",
+  },
+
+  /**
+   * Theme colors & PWA display config.
+   *
+   * - primaryColor    : warna utama, di-reflect ke <meta theme-color>
+   *                     (chrome bar warna di mobile browser)
+   * - backgroundColor : warna splash screen PWA (saat app di-launch)
+   * - themeColorMeta  : alias primaryColor untuk <meta> tags
+   *
+   * Warna UI di component pakai CSS variable --primary di globals.css.
+   */
+  theme: {
+    primaryColor: process.env.NEXT_PUBLIC_APP_PRIMARY_COLOR ?? "#16a34a",
+    backgroundColor: process.env.NEXT_PUBLIC_APP_BG_COLOR ?? "#ffffff",
+    themeColorMeta: process.env.NEXT_PUBLIC_APP_PRIMARY_COLOR ?? "#16a34a",
+  },
+
+  /**
+   * SEO & meta information.
+   *
+   * - keywords : comma-separated di env, di-parse ke array
+   * - author   : nama pembuat (opsional, tampil di <meta name="author">)
+   * - category : kategori PWA (productivity, social, education, dll)
+   * - lang     : BCP-47 language tag untuk <html lang> & manifest lang
+   *              Contoh: "id-ID", "en-US", "ja-JP"
+   */
+  meta: {
+    keywords: (process.env.NEXT_PUBLIC_APP_KEYWORDS ?? "app,web,platform")
+      .split(",")
+      .map((k) => k.trim())
+      .filter(Boolean),
+    author: process.env.NEXT_PUBLIC_APP_AUTHOR ?? "",
+    category: process.env.NEXT_PUBLIC_APP_CATEGORY ?? "productivity",
+    lang: process.env.NEXT_PUBLIC_APP_LANG ?? "id-ID",
+  },
+} as const;
+
+export type BrandingConfig = typeof brandingConfig;
+
+
+================================================
+FILE: src/config/index.ts
+Lines: 30
+================================================
+
+/**
+ * Config barrel export.
+ *
+ * Usage:
+ *   import { appConfig, brandingConfig, isAdminRole } from "@/config";
+ *   import { permissionMatrix, type Permission } from "@/config";
+ */
+
+export { appConfig } from "./app.config";
+export type {
+  AppConfig,
+  UserRole,
+  AdminRole,
+  AuthProvider,
+  Locale,
+  ModuleName,
+  PaymentMode,
+} from "./app.config";
+export {
+  isAdminRole,
+  isModuleEnabled,
+  getEnabledModulePaths,
+  resolvePostLoginRedirect,
+} from "./app.config";
+
+export { permissionMatrix } from "./permissions.config";
+export type { Permission, PermissionMatrix } from "./permissions.config";
+
+export { brandingConfig } from "./branding.config";
+export type { BrandingConfig } from "./branding.config";
+
+
+
+================================================
+FILE: src/config/permissions.config.ts
+Lines: 82
+================================================
+
+/**
+ * Permission Matrix — RBAC + wildcard.
+ *
+ * Source of truth untuk semua permission di sistem.
+ *
+ * Format key: "resource:action" atau "resource:sub:action".
+ * Contoh: "admin:access", "users:read", "commerce:orders:*".
+ *
+ * Wildcard semantics:
+ *   - "*"                 → super power (semua permission)
+ *   - "users:*"           → semua action di resource "users"
+ *   - "commerce:orders:*" → semua action di sub-resource "orders"
+ *
+ * Cara kerja `can(role, "users:read")`:
+ *   1. Expand permission list dari role (dari matrix ini).
+ *   2. Cek exact match ("users:read" === "users:read") → true.
+ *   3. Cek global wildcard ("*" in list) → true.
+ *   4. Cek segmented wildcard: "users:*" match "users:read",
+ *       "commerce:*" match "commerce:orders:read", dst.
+ *   5. Otherwise → false.
+ *
+ * Desain prinsip:
+ *   - Matrix flat & readable. Bisa di-serialize, di-diff, di-audit.
+ *   - Gak ada runtime compilation — permission check = string comparison.
+ *   - Upgrade path ke ABAC nanti: tambah optional 3rd param (context) ke
+ *     `can()` tanpa breaking existing call.
+ *
+ * Tambah permission baru?
+ *   1. Tambah string key di role yang perlu (pakai wildcard kalau logis).
+ *   2. Pakai di code: `can(role, "your:new:perm")`.
+ *   3. Gak perlu migration DB — permission derived dari role.
+ */
+
+import type { UserRole } from "./app.config";
+
+export const permissionMatrix: Record<UserRole, readonly string[]> = {
+  // Super admin: bisa semua
+  super_admin: ["*"],
+
+  // Admin: akses panel + user & content management penuh
+  admin: [
+    "admin:access",
+    "users:*",
+    "content:*",
+    "profile:read",
+    "profile:write",
+  ],
+
+  // Editor: kelola content, read users
+  editor: [
+    "content:read",
+    "content:write",
+    "content:publish",
+    "users:read",
+    "profile:read",
+    "profile:write",
+  ],
+
+  // Viewer: read-only
+  viewer: [
+    "content:read",
+    "users:read",
+    "profile:read",
+    "profile:write",
+  ],
+
+  // User: cuma kelola profile sendiri
+  user: [
+    "profile:read",
+    "profile:write",
+  ],
+} as const;
+
+/**
+ * Re-export as Permission type — nanti kalau mau enforce type-safe
+ * permission keys, bisa union-type semua key di sini.
+ *
+ * Untuk sekarang masih `string` biar gampang extend per module.
+ */
+export type Permission = string;
+
+export type PermissionMatrix = typeof permissionMatrix;
+
+
+
+################################################################
+##  core/auth/components/
+################################################################
+
+
+================================================
+FILE: src/core/auth/components/index.ts
+Lines: 14
+================================================
+
+/**
+ * Auth Components
+ */
+
+export { LoginForm } from "./login-form";
+export { LogoutButton } from "./logout-button";
+
+// Provider sub-components — diekspos untuk custom composition
+export {
+  EmailPasswordForm,
+  OAuthButton,
+  GoogleIcon,
+  MagicLinkForm,
+} from "./providers";
+
+
+
+================================================
+FILE: src/core/auth/components/login-form.tsx
+Lines: 187
+================================================
+
+"use client";
+
+import { useMemo, useState } from "react";
+import Image from "next/image";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { HelpCircle } from "lucide-react";
+import { appConfig, brandingConfig, type AuthProvider } from "@/config";
+import { t } from "@/core/i18n";
+import {
+  EmailPasswordForm,
+  OAuthButton,
+  GoogleIcon,
+  MagicLinkForm,
+} from "./providers";
+
+interface LoginFormProps {
+  /**
+   * returnTo param dari URL (biasanya di-set sama proxy middleware).
+   * Di-forward ke semua provider component biar post-login redirect konsisten.
+   */
+  returnTo?: string | null;
+}
+
+/**
+ * LoginForm — composer.
+ *
+ * Render provider yang enabled di `appConfig.auth.providers`. Urutan di array
+ * = urutan render. Kalau ada lebih dari 1 provider, tampilin divider
+ * "atau lanjut dengan" di antara primary (email/magic-link) & OAuth.
+ *
+ * Design:
+ *   - Email & magic-link di-tab kalau keduanya enabled (biar gak tumpang).
+ *   - OAuth buttons selalu di bawah divider.
+ *   - Semua provider dapet `returnTo` yang sama.
+ */
+export function LoginForm({ returnTo }: LoginFormProps) {
+  const providers = appConfig.auth.providers as readonly AuthProvider[];
+  const hasEmail = providers.includes("email");
+  const hasMagicLink = providers.includes("magic-link");
+  const oauthProviders = providers.filter((p) =>
+    isOAuthProvider(p)
+  ) as readonly OAuthProviderName[];
+
+  // Tab state — kalau email + magic-link keduanya ada, user bisa switch
+  const [emailTab, setEmailTab] = useState<"password" | "magic">("password");
+  const showEmailTabs = hasEmail && hasMagicLink;
+
+  const hasPrimary = hasEmail || hasMagicLink;
+  const hasOAuth = oauthProviders.length > 0;
+
+  return (
+    <Card className="w-full max-w-md shadow-lg">
+      <CardHeader className="text-center space-y-4 pb-4">
+        <div className="flex justify-center">
+          <div className="relative w-24 h-24">
+            <Image
+              src={brandingConfig.assets.logo}
+              alt={brandingConfig.name}
+              fill
+              className="object-contain"
+              priority
+            />
+          </div>
+        </div>
+        <div>
+          <CardTitle className="text-2xl font-bold">
+            {brandingConfig.name}
+          </CardTitle>
+          <CardDescription className="text-base mt-1">
+            {brandingConfig.description}
+          </CardDescription>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        {/* Primary: email / magic-link */}
+        {hasPrimary && (
+          <>
+            {showEmailTabs && (
+              <div className="flex rounded-lg border p-1 text-sm">
+                <button
+                  type="button"
+                  onClick={() => setEmailTab("password")}
+                  className={`flex-1 rounded-md px-3 py-1.5 font-medium transition ${
+                    emailTab === "password"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {t("auth.tabPassword")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEmailTab("magic")}
+                  className={`flex-1 rounded-md px-3 py-1.5 font-medium transition ${
+                    emailTab === "magic"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {t("auth.tabMagicLink")}
+                </button>
+              </div>
+            )}
+
+            {hasEmail && (!showEmailTabs || emailTab === "password") && (
+              <EmailPasswordForm returnTo={returnTo} />
+            )}
+
+            {hasMagicLink && (!showEmailTabs || emailTab === "magic") && (
+              <MagicLinkForm returnTo={returnTo} />
+            )}
+          </>
+        )}
+
+        {/* Divider */}
+        {hasPrimary && hasOAuth && (
+          <div className="relative py-2">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">
+                {t("auth.orContinueWith")}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* OAuth buttons */}
+        {hasOAuth && (
+          <div className="space-y-2">
+            {oauthProviders.map((provider) => {
+              const config = oauthProviderConfig[provider];
+              return (
+                <OAuthButton
+                  key={provider}
+                  provider={provider}
+                  label={t(config.labelKey)}
+                  icon={config.icon}
+                  returnTo={returnTo}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {/* Help text */}
+        <div className="flex items-center justify-center gap-2 pt-2 text-sm text-muted-foreground">
+          <HelpCircle className="h-4 w-4" />
+          <p>
+            {t("auth.forgotPassword")}{" "}
+            <span className="font-medium text-foreground">
+              {t("auth.contactAdmin")}
+            </span>
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ------------------------------------------------------------------
+// OAuth provider registry
+// ------------------------------------------------------------------
+
+type OAuthProviderName = "google";
+
+function isOAuthProvider(p: AuthProvider): p is OAuthProviderName {
+  return p === "google";
+}
+
+const oauthProviderConfig: Record<
+  OAuthProviderName,
+  { labelKey: Parameters<typeof t>[0]; icon: React.ReactNode }
+> = {
+  google: {
+    labelKey: "auth.signInWithGoogle",
+    icon: <GoogleIcon />,
+  },
+};
+
+
+
+================================================
+FILE: src/core/auth/components/logout-button.tsx
+Lines: 71
+================================================
+
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { LogOut, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/core/components";
+import { useAuthStore } from "@/core/auth/store";
+import { appConfig } from "@/config";
+import { t } from "@/core/i18n";
+
+interface LogoutButtonProps {
+  variant?: "default" | "ghost" | "outline" | "destructive";
+  size?: "default" | "sm" | "lg" | "icon";
+  showIcon?: boolean;
+  showText?: boolean;
+  className?: string;
+}
+
+export function LogoutButton({
+  variant = "ghost",
+  size = "default",
+  showIcon = true,
+  showText = true,
+  className,
+}: LogoutButtonProps) {
+  const router = useRouter();
+  const { logout } = useAuthStore();
+  const [showDialog, setShowDialog] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogout = async () => {
+    setIsLoading(true);
+    await logout();
+    router.push(appConfig.auth.postLogoutRedirect);
+  };
+
+  return (
+    <>
+      <Button
+        variant={variant}
+        size={size}
+        onClick={() => setShowDialog(true)}
+        className={className}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <>
+            {showIcon && (
+              <LogOut className={showText ? "mr-2 h-4 w-4" : "h-4 w-4"} />
+            )}
+            {showText && t("common.logout")}
+          </>
+        )}
+      </Button>
+
+      <ConfirmDialog
+        open={showDialog}
+        onOpenChange={setShowDialog}
+        title={t("auth.logoutConfirmTitle")}
+        description={t("auth.logoutConfirmDescription")}
+        confirmLabel={t("auth.logoutConfirmButton")}
+        variant="destructive"
+        isLoading={isLoading}
+        onConfirm={handleLogout}
+      />
+    </>
+  );
+}
+
+
+
+================================================
+FILE: src/core/auth/components/providers/email-password-form.tsx
+Lines: 206
+================================================
+
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Loader2,
+  LogIn,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+} from "lucide-react";
+import { createClient } from "@/core/lib/supabase/client";
+import { useAuthStore } from "@/core/auth/store";
+import { verifyProfile } from "@/core/auth/services";
+import { loginSchema, type LoginFormData } from "@/core/lib/validators";
+import { resolvePostLoginRedirect } from "@/config";
+import { t } from "@/core/i18n";
+
+interface EmailPasswordFormProps {
+  /**
+   * returnTo param dari URL — kalau ada & safe, prioritas di atas role-based.
+   */
+  returnTo?: string | null;
+}
+
+export function EmailPasswordForm({ returnTo }: EmailPasswordFormProps) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const form = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+  });
+
+  const onSubmit = async (data: LoginFormData) => {
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const supabase = createClient();
+
+      const { data: authData, error: authError } =
+        await supabase.auth.signInWithPassword({
+          email: data.email,
+          password: data.password,
+        });
+
+      if (authError) {
+        setError(
+          authError.message.includes("Invalid login")
+            ? t("auth.invalidCredentials")
+            : authError.message
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      if (!authData.user) {
+        setError(t("auth.loginFailed"));
+        setIsLoading(false);
+        return;
+      }
+
+      // Verify via profile service — delegated from inline query
+      const verification = await verifyProfile(supabase, authData.user.id);
+
+      if (verification.error || !verification.exists) {
+        await supabase.auth.signOut();
+        setError(t("auth.accountNotRegistered"));
+        setIsLoading(false);
+        return;
+      }
+
+      if (!verification.isActive) {
+        await supabase.auth.signOut();
+        setError(t("auth.accountDeactivated"));
+        setIsLoading(false);
+        return;
+      }
+
+      // Reset store → trigger fresh fetch di dashboard layout
+      useAuthStore.setState({
+        hasFetched: false,
+        isLoading: false,
+        fetchPromise: null,
+      });
+
+      // Role-aware redirect (returnTo > role > global fallback)
+      const dest = resolvePostLoginRedirect(
+        verification.role ?? undefined,
+        returnTo
+      );
+      router.push(dest);
+      router.refresh();
+    } catch (err) {
+      console.error("Login error:", err);
+      setError(t("auth.genericError"));
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("auth.emailLabel")}</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    placeholder={t("auth.emailPlaceholder")}
+                    autoComplete="email"
+                    disabled={isLoading}
+                    className="pl-10"
+                    {...field}
+                  />
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("auth.passwordLabel")}</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder={t("auth.passwordPlaceholder")}
+                    autoComplete="current-password"
+                    disabled={isLoading}
+                    className="pl-10 pr-10"
+                    {...field}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    disabled={isLoading}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {t("common.loggingIn")}
+            </>
+          ) : (
+            <>
+              <LogIn className="mr-2 h-4 w-4" />
+              {t("auth.signInWithEmail")}
+            </>
+          )}
+        </Button>
+      </form>
+    </Form>
+  );
+}
+
+
+
+================================================
+FILE: src/core/auth/components/providers/index.ts
+Lines: 3
+================================================
+
+export { EmailPasswordForm } from "./email-password-form";
+export { OAuthButton, GoogleIcon } from "./oauth-button";
+export { MagicLinkForm } from "./magic-link-form";
+
+
+
+================================================
+FILE: src/core/auth/components/providers/magic-link-form.tsx
+Lines: 150
+================================================
+
+"use client";
+
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Loader2,
+  Mail,
+  AlertCircle,
+  CheckCircle2,
+  Sparkles,
+} from "lucide-react";
+import { createClient } from "@/core/lib/supabase/client";
+import { t } from "@/core/i18n";
+
+const magicLinkSchema = z.object({
+  email: z
+    .string()
+    .min(1, t("auth.validation.emailRequired"))
+    .email(t("auth.validation.emailInvalid")),
+});
+
+type MagicLinkFormData = z.infer<typeof magicLinkSchema>;
+
+interface MagicLinkFormProps {
+  returnTo?: string | null;
+}
+
+export function MagicLinkForm({ returnTo }: MagicLinkFormProps) {
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const form = useForm<MagicLinkFormData>({
+    resolver: zodResolver(magicLinkSchema),
+    defaultValues: { email: "" },
+  });
+
+  const onSubmit = async (data: MagicLinkFormData) => {
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const supabase = createClient();
+
+      const callbackUrl = new URL(
+        "/api/auth/callback",
+        window.location.origin
+      );
+      if (returnTo) {
+        callbackUrl.searchParams.set("next", returnTo);
+      }
+
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: data.email,
+        options: {
+          emailRedirectTo: callbackUrl.toString(),
+          // shouldCreateUser: false — user harus sudah terdaftar
+          // Kalau mau open-register, hapus line ini.
+          shouldCreateUser: false,
+        },
+      });
+
+      if (otpError) {
+        setError(otpError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      setSent(true);
+      setIsLoading(false);
+    } catch (err) {
+      console.error("Magic link error:", err);
+      setError(t("auth.genericError"));
+      setIsLoading(false);
+    }
+  };
+
+  if (sent) {
+    return (
+      <Alert className="border-green-200 bg-green-50 text-green-900">
+        <CheckCircle2 className="h-4 w-4 text-green-700" />
+        <AlertDescription>{t("auth.magicLinkSent")}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("auth.emailLabel")}</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    placeholder={t("auth.emailPlaceholder")}
+                    autoComplete="email"
+                    disabled={isLoading}
+                    className="pl-10"
+                    {...field}
+                  />
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {t("auth.sendingMagicLink")}
+            </>
+          ) : (
+            <>
+              <Sparkles className="mr-2 h-4 w-4" />
+              {t("auth.sendMagicLink")}
+            </>
+          )}
+        </Button>
+      </form>
+    </Form>
+  );
+}
+
+
+
+================================================
+FILE: src/core/auth/components/providers/oauth-button.tsx
+Lines: 113
+================================================
+
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, AlertCircle } from "lucide-react";
+import { createClient } from "@/core/lib/supabase/client";
+import { t } from "@/core/i18n";
+import type { Provider } from "@supabase/supabase-js";
+
+interface OAuthButtonProps {
+  provider: Provider;
+  label: string;
+  /** SVG string atau ReactNode untuk icon provider */
+  icon?: React.ReactNode;
+  /** returnTo param — di-forward via `next` ke callback route */
+  returnTo?: string | null;
+}
+
+export function OAuthButton({
+  provider,
+  label,
+  icon,
+  returnTo,
+}: OAuthButtonProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleClick = async () => {
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const supabase = createClient();
+
+      // Build callback URL — forward returnTo sebagai `next` param
+      const callbackUrl = new URL(
+        "/api/auth/callback",
+        window.location.origin
+      );
+      if (returnTo) {
+        callbackUrl.searchParams.set("next", returnTo);
+      }
+
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: callbackUrl.toString(),
+        },
+      });
+
+      if (oauthError) {
+        setError(oauthError.message);
+        setIsLoading(false);
+      }
+      // On success, browser akan di-redirect ke OAuth provider
+      // Loading state tetep true sampai redirect terjadi
+    } catch (err) {
+      console.error("OAuth error:", err);
+      setError(t("auth.genericError"));
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        onClick={handleClick}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          icon && <span className="mr-2 flex items-center">{icon}</span>
+        )}
+        {label}
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * Google icon — official brand SVG, inlined to hindari extra deps.
+ */
+export const GoogleIcon = () => (
+  <svg className="h-4 w-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      fill="#4285F4"
+    />
+    <path
+      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+      fill="#34A853"
+    />
+    <path
+      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+      fill="#FBBC05"
+    />
+    <path
+      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+      fill="#EA4335"
+    />
+  </svg>
+);
+
+
+
+################################################################
+##  core/auth/hooks/
+################################################################
+
+
+================================================
+FILE: src/core/auth/hooks/index.ts
+Lines: 2
+================================================
+
+export { useAuth } from "./use-auth";
+export { usePermission, usePermissions } from "./use-permission";
+
+
+
+================================================
+FILE: src/core/auth/hooks/use-auth.ts
+Lines: 74
+================================================
+
+"use client";
+
+import { useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/core/auth/store";
+import { can as canFn, canAccessAdmin as canAccessAdminFn } from "@/core/auth/lib";
+import { appConfig } from "@/config";
+import type { Permission } from "@/config";
+
+/**
+ * useAuth — facade untuk typical consumer.
+ *
+ * Expose state + actions + permission helpers dalam satu object.
+ * Auto-fetch user on mount kalau belum.
+ *
+ * Design:
+ *   - Tiap field di-subscribe granular via useAuthStore(selector).
+ *     React akan re-render component cuma kalau field yang dibaca berubah.
+ *   - `can` & `canAccessAdmin` di-memoize per user.role biar referensi stabil.
+ *
+ * Performance escape hatch:
+ *   - Kalau butuh granular subscription (misal cuma `isLoading`),
+ *     tetap boleh pake `useAuthStore(s => s.isLoading)` langsung.
+ *
+ * @example
+ *   const { user, isAuthenticated, can, logout } = useAuth();
+ *   if (can("users:write")) { ... }
+ */
+export function useAuth() {
+  const user = useAuthStore((state) => state.user);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isAdmin = useAuthStore((state) => state.isAdmin);
+  const hasFetched = useAuthStore((state) => state.hasFetched);
+  const fetchUser = useAuthStore((state) => state.fetchUser);
+  const storeLogout = useAuthStore((state) => state.logout);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!hasFetched && !isLoading) {
+      fetchUser();
+    }
+  }, [hasFetched, isLoading, fetchUser]);
+
+  const logout = useCallback(async () => {
+    await storeLogout();
+    router.push(appConfig.auth.postLogoutRedirect);
+  }, [storeLogout, router]);
+
+  const role = user?.role;
+
+  // Memoize permission checker — stable reference as long as role doesn't change
+  const can = useCallback(
+    (permission: Permission) => canFn(role, permission),
+    [role]
+  );
+
+  const canAccessAdmin = useMemo(() => canAccessAdminFn(role), [role]);
+
+  return {
+    // State
+    user,
+    isLoading,
+    isAuthenticated,
+    isAdmin,
+    hasFetched,
+    // Actions
+    fetchUser,
+    logout,
+    // Permission helpers
+    can,
+    canAccessAdmin,
+  };
+}
+
+
+
+================================================
+FILE: src/core/auth/hooks/use-permission.ts
+Lines: 34
+================================================
+
+"use client";
+
+import { useCallback } from "react";
+import { useAuthStore } from "@/core/auth/store";
+import { can as canFn } from "@/core/auth/lib";
+import type { Permission } from "@/config";
+
+/**
+ * Cek apakah current user punya satu permission spesifik.
+ *
+ * @example
+ *   const canEditUsers = usePermission("users:write");
+ *   if (!canEditUsers) return <Forbidden />;
+ */
+export function usePermission(permission: Permission): boolean {
+  const role = useAuthStore((state) => state.user?.role);
+  return canFn(role, permission);
+}
+
+/**
+ * Return permission checker function — reactive ke user role.
+ *
+ * Useful kalau component perlu cek banyak permission (hindari manggil
+ * usePermission berkali-kali di render yang sama).
+ *
+ * @example
+ *   const check = usePermissions();
+ *   const canEdit = check("users:write");
+ *   const canDelete = check("users:delete");
+ */
+export function usePermissions(): (permission: Permission) => boolean {
+  const role = useAuthStore((state) => state.user?.role);
+  return useCallback((permission: Permission) => canFn(role, permission), [role]);
+}
+
+
+
+################################################################
+##  core/auth/lib/
+################################################################
+
+
+================================================
+FILE: src/core/auth/lib/index.ts
+Lines: 13
+================================================
+
+/**
+ * @/core/auth/lib — pure auth utilities.
+ *
+ * Framework-agnostic. No React, no Zustand.
+ */
+
+export {
+  can,
+  canAll,
+  canAny,
+  canAccessAdmin,
+  getPermissionsForRole,
+} from "./permissions";
+
+
+
+================================================
+FILE: src/core/auth/lib/permissions.ts
+Lines: 103
+================================================
+
+/**
+ * Permission utilities — pure, framework-agnostic.
+ *
+ * Tidak punya dependency ke React/Zustand. Bisa dipake di:
+ *   - Client components (via useAuth/usePermission hooks)
+ *   - Server components & Route Handlers
+ *   - Edge middleware
+ *   - Unit tests
+ *
+ * Semua function di sini pure: same input → same output.
+ */
+
+import { permissionMatrix, type Permission } from "@/config";
+import type { UserRole } from "@/config";
+
+/**
+ * Cek apakah role punya permission tertentu.
+ *
+ * Wildcard semantics:
+ *   - "*" owned → match apapun
+ *   - "users:*" owned → match "users:read", "users:write", "users:anything"
+ *   - "commerce:orders:*" owned → match "commerce:orders:read", dst
+ *
+ * @param role       User role (string) — kalau undefined/invalid, return false
+ * @param permission Permission yang dicek (e.g. "admin:access")
+ * @returns          true kalau role punya permission
+ *
+ * @example
+ *   can("admin", "users:read")     // true  (punya "users:*")
+ *   can("admin", "billing:read")   // false (gak ada "billing:*")
+ *   can("super_admin", "any:thing") // true  (punya "*")
+ *   can("viewer", "content:write") // false
+ */
+export function can(
+  role: string | null | undefined,
+  permission: Permission
+): boolean {
+  if (!role) return false;
+  if (!permission || typeof permission !== "string") return false;
+
+  const owned = (permissionMatrix as Record<string, readonly string[]>)[role];
+  if (!owned) return false;
+
+  // Global wildcard → always allow
+  if (owned.includes("*")) return true;
+
+  // Exact match
+  if (owned.includes(permission)) return true;
+
+  // Segmented wildcard match:
+  // For each owned "a:b:*", check if permission starts with "a:b:"
+  for (const pattern of owned) {
+    if (!pattern.endsWith(":*")) continue;
+    const prefix = pattern.slice(0, -1); // "users:*" → "users:"
+    if (permission.startsWith(prefix)) return true;
+  }
+
+  return false;
+}
+
+/**
+ * Cek apakah role punya SEMUA permission di list.
+ */
+export function canAll(
+  role: string | null | undefined,
+  permissions: readonly Permission[]
+): boolean {
+  if (!role || permissions.length === 0) return false;
+  return permissions.every((p) => can(role, p));
+}
+
+/**
+ * Cek apakah role punya SETIDAKNYA SATU permission di list.
+ */
+export function canAny(
+  role: string | null | undefined,
+  permissions: readonly Permission[]
+): boolean {
+  if (!role || permissions.length === 0) return false;
+  return permissions.some((p) => can(role, p));
+}
+
+/**
+ * Shortcut: cek akses admin panel.
+ *
+ * Convention: admin panel gate = "admin:access".
+ * Semua admin-role di appConfig.adminRoles otomatis punya ini di matrix.
+ */
+export function canAccessAdmin(role: string | null | undefined): boolean {
+  return can(role, "admin:access");
+}
+
+/**
+ * Ambil list lengkap permission untuk role (untuk debugging/audit).
+ * Raw values, termasuk wildcard patterns.
+ */
+export function getPermissionsForRole(
+  role: UserRole | string
+): readonly string[] {
+  return (
+    (permissionMatrix as Record<string, readonly string[]>)[role] ?? []
+  );
+}
+
+
+
+################################################################
+##  core/auth/services/
+################################################################
+
+
+================================================
+FILE: src/core/auth/services/activity.service.ts
+Lines: 222
+================================================
+
+/**
+ * Activity Logging Service.
+ *
+ * Append-only writes ke `public.activity_logs`.
+ *
+ * Design:
+ *   - Pure function, caller pass supabase client (browser atau server).
+ *   - Fire-and-forget style: gagal log gak boleh break user flow.
+ *   - Action key pakai dot-notation: "user.login", "profile.update".
+ *
+ * Usage client:
+ *   import { createClient } from "@/core/lib/supabase/client";
+ *   import { logActivity } from "@/core/auth/services";
+ *
+ *   const supabase = createClient();
+ *   await logActivity(supabase, {
+ *     action: "profile.update",
+ *     resourceType: "user",
+ *     resourceId: user.id,
+ *     metadata: { fields: ["full_name"] },
+ *   });
+ *
+ * Usage server (Route Handler):
+ *   const ip = request.headers.get("x-forwarded-for") ?? undefined;
+ *   const ua = request.headers.get("user-agent") ?? undefined;
+ *   await logActivity(supabase, { action: "user.login", ipAddress: ip, userAgent: ua });
+ */
+
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, ActivityLog, Json } from "@/core/types";
+
+type Client = SupabaseClient<Database>;
+
+export interface LogActivityInput {
+  /** Dot-notation action key, e.g. "user.login", "admin.user.deactivate". */
+  action: string;
+  /** Optional — override current user (useful for admin actions on behalf). */
+  userId?: string | null;
+  /** Optional resource type: "user", "order", "post", etc. */
+  resourceType?: string | null;
+  /** Optional resource identifier (string-compatible: uuid, slug, number-as-string). */
+  resourceId?: string | null;
+  /** Free-form context. Keep small; for full payload use separate storage. */
+  metadata?: Record<string, unknown>;
+  /** Request IP — available on server only (from headers). */
+  ipAddress?: string | null;
+  /** Request UA — available on server only. */
+  userAgent?: string | null;
+}
+
+export interface LogActivityResult {
+  logged: boolean;
+  id: string | null;
+  error: Error | null;
+}
+
+/**
+ * Insert activity log. Never throws — error returned via result.
+ *
+ * @returns {logged: true} kalau sukses insert, {logged: false} kalau gagal.
+ *          Error detail ada di `result.error` untuk debugging, tapi caller
+ *          biasanya tidak perlu act on it.
+ */
+export async function logActivity(
+  supabase: Client,
+  input: LogActivityInput
+): Promise<LogActivityResult> {
+  try {
+    // Resolve user_id: explicit > session user > null
+    let userId = input.userId ?? null;
+    if (userId === undefined || userId === null) {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      userId = session?.user?.id ?? null;
+    }
+
+    const { data, error } = await supabase
+      .from("activity_logs")
+      .insert({
+        user_id: userId,
+        action: input.action,
+        resource_type: input.resourceType ?? null,
+        resource_id: input.resourceId ?? null,
+        metadata: (input.metadata ?? {}) as Json,
+        ip_address: input.ipAddress ?? null,
+        user_agent: input.userAgent ?? null,
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      // Log to console but don't throw — activity log failure must not
+      // break the calling flow.
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[logActivity] insert failed:", error.message);
+      }
+      return {
+        logged: false,
+        id: null,
+        error: new Error(error.message),
+      };
+    }
+
+    return { logged: true, id: data?.id ?? null, error: null };
+  } catch (err) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[logActivity] unexpected error:", err);
+    }
+    return {
+      logged: false,
+      id: null,
+      error: err instanceof Error ? err : new Error(String(err)),
+    };
+  }
+}
+
+// --------------------------------------------------------------------
+// Query helpers (for admin UI)
+// --------------------------------------------------------------------
+
+export interface ListActivityOptions {
+  userId?: string;
+  action?: string;
+  resourceType?: string;
+  resourceId?: string;
+  limit?: number;
+  offset?: number;
+  /** Filter by date range (inclusive start, exclusive end). */
+  from?: Date;
+  to?: Date;
+}
+
+export interface ListActivityResult {
+  rows: ActivityLog[];
+  count: number | null;
+  error: Error | null;
+}
+
+/**
+ * Paginated list — untuk admin page. RLS auto-filter:
+ *   - Regular user: cuma log-nya sendiri
+ *   - Admin (policy `activity_logs_admin_select_all`): semua log
+ */
+export async function listActivity(
+  supabase: Client,
+  options: ListActivityOptions = {}
+): Promise<ListActivityResult> {
+  try {
+    const {
+      userId,
+      action,
+      resourceType,
+      resourceId,
+      limit = 50,
+      offset = 0,
+      from,
+      to,
+    } = options;
+
+    let query = supabase
+      .from("activity_logs")
+      .select("*", { count: "exact" })
+      .order("created_at", { ascending: false });
+
+    if (userId) query = query.eq("user_id", userId);
+    if (action) query = query.eq("action", action);
+    if (resourceType) query = query.eq("resource_type", resourceType);
+    if (resourceId) query = query.eq("resource_id", resourceId);
+    if (from) query = query.gte("created_at", from.toISOString());
+    if (to) query = query.lt("created_at", to.toISOString());
+
+    query = query.range(offset, offset + limit - 1);
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      return { rows: [], count: null, error: new Error(error.message) };
+    }
+
+    return {
+      rows: (data ?? []) as ActivityLog[],
+      count: count ?? null,
+      error: null,
+    };
+  } catch (err) {
+    return {
+      rows: [],
+      count: null,
+      error: err instanceof Error ? err : new Error(String(err)),
+    };
+  }
+}
+
+// --------------------------------------------------------------------
+// Common action key constants (convention, not enforced)
+// --------------------------------------------------------------------
+
+/**
+ * Convention untuk action keys. Tidak di-enforce di type — tambah sesuai
+ * kebutuhan modul. Format: "<domain>.<verb>" atau "<domain>.<subdomain>.<verb>".
+ */
+export const ActivityAction = {
+  // User lifecycle
+  UserLogin: "user.login",
+  UserLogout: "user.logout",
+  UserSignup: "user.signup",
+  UserFailedLogin: "user.failed_login",
+
+  // Profile
+  ProfileUpdate: "profile.update",
+  ProfileAvatarUpload: "profile.avatar_upload",
+
+  // Admin
+  AdminUserCreate: "admin.user.create",
+  AdminUserDeactivate: "admin.user.deactivate",
+  AdminUserActivate: "admin.user.activate",
+  AdminUserRoleChange: "admin.user.role_change",
+  AdminUserDelete: "admin.user.delete",
+} as const;
+
+export type ActivityActionKey = (typeof ActivityAction)[keyof typeof ActivityAction];
+
+
+
+================================================
+FILE: src/core/auth/services/index.ts
+Lines: 29
+================================================
+
+/**
+ * @/core/auth/services — DB/external service calls.
+ *
+ * Semua function di sini terima `supabase` client sebagai param,
+ * biar reusable di client + server context.
+ */
+
+// Profile
+export {
+  fetchActiveProfile,
+  verifyProfile,
+  updateProfile,
+  mergeProfileMetadata,
+  type FetchProfileResult,
+  type VerifyProfileResult,
+  type UpdateProfileResult,
+} from "./profile.service";
+
+// Activity logging
+export {
+  logActivity,
+  listActivity,
+  ActivityAction,
+  type LogActivityInput,
+  type LogActivityResult,
+  type ListActivityOptions,
+  type ListActivityResult,
+  type ActivityActionKey,
+} from "./activity.service";
+
+
+
+================================================
+FILE: src/core/auth/services/profile.service.ts
+Lines: 175
+================================================
+
+/**
+ * Profile Service — centralize semua DB call ke `user_profiles`.
+ *
+ * Ekstraksi dari auth-store biar:
+ *   - DB logic bisa di-test tanpa Zustand
+ *   - Server component bisa fetch profile tanpa bikin store
+ *   - Gampang extend (tambah cache layer, activity log, dst)
+ *
+ * Semua function accept `supabase` client sebagai parameter. Caller yang
+ * decide pake browser client atau server client. Ini kunci biar service
+ * bisa dipake di mana aja tanpa duplikasi.
+ */
+
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type {
+  Database,
+  UserProfile,
+  UserProfileUpdate,
+  Json,
+} from "@/core/types";
+
+type Client = SupabaseClient<Database>;
+
+export interface FetchProfileResult {
+  profile: UserProfile | null;
+  error: Error | null;
+}
+
+/**
+ * Fetch active user profile by auth user ID.
+ */
+export async function fetchActiveProfile(
+  supabase: Client,
+  userId: string
+): Promise<FetchProfileResult> {
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .select("*")
+    .eq("id", userId)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (error) {
+    return { profile: null, error: new Error(error.message) };
+  }
+
+  return { profile: (data as UserProfile | null) ?? null, error: null };
+}
+
+/**
+ * Verify profile exist untuk auth user — tanpa memaksa is_active.
+ * Dipake di login flow untuk bedain error type.
+ */
+export interface VerifyProfileResult {
+  exists: boolean;
+  isActive: boolean;
+  role: string | null;
+  error: Error | null;
+}
+
+export async function verifyProfile(
+  supabase: Client,
+  userId: string
+): Promise<VerifyProfileResult> {
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .select("id, role, is_active")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) {
+    return {
+      exists: false,
+      isActive: false,
+      role: null,
+      error: new Error(error.message),
+    };
+  }
+
+  if (!data) {
+    return { exists: false, isActive: false, role: null, error: null };
+  }
+
+  return {
+    exists: true,
+    isActive: !!data.is_active,
+    role: data.role ?? null,
+    error: null,
+  };
+}
+
+// --------------------------------------------------------------------
+// Mutations
+// --------------------------------------------------------------------
+
+export interface UpdateProfileResult {
+  profile: UserProfile | null;
+  error: Error | null;
+}
+
+/**
+ * Update profile. RLS memastikan user cuma bisa update sendiri
+ * (kecuali admin).
+ */
+export async function updateProfile(
+  supabase: Client,
+  userId: string,
+  patch: Partial<Omit<UserProfileUpdate, "id">>
+): Promise<UpdateProfileResult> {
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .update(patch)
+    .eq("id", userId)
+    .select("*")
+    .single();
+
+  if (error) {
+    return { profile: null, error: new Error(error.message) };
+  }
+  return { profile: data as UserProfile, error: null };
+}
+
+/**
+ * Merge patch ke metadata field. Pattern umum: nested module-scoped data.
+ *
+ * @example
+ *   await mergeProfileMetadata(supabase, userId, "commerce", {
+ *     shipping_addresses: [...]
+ *   });
+ *   // Hasil:
+ *   // metadata = {
+ *   //   ...existing,
+ *   //   commerce: { ...existing.commerce, shipping_addresses: [...] }
+ *   // }
+ */
+export async function mergeProfileMetadata(
+  supabase: Client,
+  userId: string,
+  namespace: string,
+  patch: Record<string, unknown>
+): Promise<UpdateProfileResult> {
+  // Fetch current metadata
+  const { data: current, error: fetchErr } = await supabase
+    .from("user_profiles")
+    .select("metadata")
+    .eq("id", userId)
+    .single();
+
+  if (fetchErr) {
+    return { profile: null, error: new Error(fetchErr.message) };
+  }
+
+  const currentMeta = (current?.metadata ?? {}) as Record<string, unknown>;
+  const currentNs = (currentMeta[namespace] ?? {}) as Record<string, unknown>;
+
+  const nextMetadata = {
+    ...currentMeta,
+    [namespace]: {
+      ...currentNs,
+      ...patch,
+    },
+  } as Json;
+
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .update({ metadata: nextMetadata })
+    .eq("id", userId)
+    .select("*")
+    .single();
+
+  if (error) {
+    return { profile: null, error: new Error(error.message) };
+  }
+  return { profile: data as UserProfile, error: null };
+}
+
+
+
+################################################################
+##  core/auth/store/
+################################################################
+
+
+================================================
+FILE: src/core/auth/store/auth-store.ts
+Lines: 107
+================================================
+
+import { create } from "zustand";
+import { createClient } from "@/core/lib/supabase/client";
+import { isAdminRole } from "@/config";
+import { fetchActiveProfile } from "@/core/auth/services";
+import type { UserProfile } from "@/core/types";
+
+interface AuthState {
+  user: UserProfile | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+  hasFetched: boolean;
+  fetchPromise: Promise<void> | null;
+
+  fetchUser: () => Promise<void>;
+  logout: () => Promise<void>;
+  reset: () => void;
+}
+
+const initialState = {
+  user: null,
+  isLoading: false,
+  isAuthenticated: false,
+  isAdmin: false,
+  hasFetched: false,
+  fetchPromise: null,
+};
+
+export const useAuthStore = create<AuthState>((set, get) => ({
+  ...initialState,
+
+  fetchUser: async () => {
+    const state = get();
+
+    if (state.hasFetched && state.user) return;
+    if (state.fetchPromise) return state.fetchPromise;
+    if (state.isLoading) return;
+
+    const supabase = createClient();
+
+    const promise = (async () => {
+      try {
+        set({ isLoading: true });
+
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session?.user) {
+          set({
+            ...initialState,
+            hasFetched: true,
+          });
+          return;
+        }
+
+        // Delegate DB call ke profile service — store cuma handle state.
+        const { profile, error } = await fetchActiveProfile(
+          supabase,
+          session.user.id
+        );
+
+        if (error || !profile) {
+          set({
+            ...initialState,
+            hasFetched: true,
+          });
+          return;
+        }
+
+        set({
+          user: profile,
+          isAuthenticated: true,
+          isAdmin: isAdminRole(profile.role),
+          isLoading: false,
+          hasFetched: true,
+          fetchPromise: null,
+        });
+      } catch (err) {
+        console.error("fetchUser error:", err);
+        set({
+          ...initialState,
+          hasFetched: true,
+        });
+      }
+    })();
+
+    // Set promise SEBELUM async resolve — fix race condition
+    set({ fetchPromise: promise });
+    return promise;
+  },
+
+  logout: async () => {
+    const supabase = createClient();
+
+    // Clear state dulu, baru signOut
+    set({ ...initialState });
+
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+  },
+
+  reset: () => set({ ...initialState }),
+}));
+
+
+
+================================================
+FILE: src/core/auth/store/index.ts
+Lines: 1
+================================================
+
+export { useAuthStore } from "./auth-store";
+
+
+
+################################################################
+##  core/auth/ (root)
+################################################################
+
+
+================================================
+FILE: src/core/auth/index.ts
+Lines: 47
+================================================
+
+/**
+ * @/core/auth — Auth barrel.
+ *
+ * Agregasi dari:
+ *   - components/  (LoginForm, LogoutButton, provider sub-components)
+ *   - hooks/       (useAuth, usePermission, usePermissions)
+ *   - lib/         (can, canAll, canAny, canAccessAdmin — pure)
+ *   - services/    (fetchActiveProfile, verifyProfile)
+ *   - store/       (useAuthStore)
+ *   - provider.tsx (AuthProvider)
+ */
+
+// Components
+export {
+  LoginForm,
+  LogoutButton,
+  EmailPasswordForm,
+  OAuthButton,
+  GoogleIcon,
+  MagicLinkForm,
+} from "./components";
+
+// Hooks
+export { useAuth, usePermission, usePermissions } from "./hooks";
+
+// Pure lib
+export {
+  can,
+  canAll,
+  canAny,
+  canAccessAdmin,
+  getPermissionsForRole,
+} from "./lib";
+
+// Services
+export {
+  fetchActiveProfile,
+  verifyProfile,
+  type FetchProfileResult,
+  type VerifyProfileResult,
+} from "./services";
+
+// Store
+export { useAuthStore } from "./store";
+
+// Provider
+export { AuthProvider } from "./provider";
+
+
+
+================================================
+FILE: src/core/auth/provider.tsx
+Lines: 14
+================================================
+
+"use client";
+
+import { type ReactNode } from "react";
+
+/**
+ * AuthProvider — placeholder shell.
+ *
+ * Saat ini boiler auth listener ada di DashboardLayout (SIGNED_IN / SIGNED_OUT).
+ * Provider ini tetap dipasang di root layout biar arsitektur konsisten &
+ * siap extend nanti (misal: global session event bus, telemetry, dll).
+ */
+export function AuthProvider({ children }: { children: ReactNode }) {
+  return <>{children}</>;
+}
+
+
+
+################################################################
+##  core/components/
+################################################################
+
+
+================================================
+FILE: src/core/components/confirm-dialog.tsx
+Lines: 58
+================================================
+
+"use client";
+
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { t } from "@/core/i18n";
+
+interface ConfirmDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  variant?: "default" | "destructive";
+  isLoading?: boolean;
+  onConfirm: () => void;
+}
+
+export function ConfirmDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  confirmLabel,
+  cancelLabel,
+  variant = "default",
+  isLoading = false,
+  onConfirm,
+}: ConfirmDialogProps) {
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isLoading}>
+            {cancelLabel ?? t("common.cancel")}
+          </AlertDialogCancel>
+          <Button variant={variant} onClick={onConfirm} disabled={isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {confirmLabel ?? t("common.confirm")}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+
+
+================================================
+FILE: src/core/components/index.ts
+Lines: 10
+================================================
+
+/**
+ * Shared UI primitives (non-shadcn, app-agnostic).
+ *
+ * Rule: component di sini TIDAK boleh tergantung module apapun.
+ * Boleh depend ke: @/core/lib, @/core/i18n, @/config, @/components/ui (shadcn).
+ */
+
+export { LoadingSpinner, FullPageLoader } from "./loading-spinner";
+export { ConfirmDialog } from "./confirm-dialog";
+export { OfflineDetector } from "./offline-detector";
+
+
+
+================================================
+FILE: src/core/components/loading-spinner.tsx
+Lines: 34
+================================================
+
+"use client";
+
+import { cn } from "@/core/lib/utils";
+import { Loader2 } from "lucide-react";
+import { t } from "@/core/i18n";
+
+interface LoadingSpinnerProps {
+  size?: "sm" | "md" | "lg";
+  className?: string;
+  text?: string;
+}
+
+const sizeMap = {
+  sm: "h-4 w-4",
+  md: "h-8 w-8",
+  lg: "h-12 w-12",
+};
+
+export function LoadingSpinner({ size = "md", className, text }: LoadingSpinnerProps) {
+  return (
+    <div className={cn("flex flex-col items-center justify-center gap-2", className)}>
+      <Loader2 className={cn("animate-spin text-primary", sizeMap[size])} />
+      {text && <p className="text-sm text-muted-foreground">{text}</p>}
+    </div>
+  );
+}
+
+export function FullPageLoader({ text }: { text?: string }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
+      <LoadingSpinner size="lg" text={text ?? t("common.loading")} />
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: src/core/components/offline-detector.tsx
+Lines: 126
+================================================
+
+"use client";
+
+import { useEffect, useState } from "react";
+import { WifiOff, Wifi, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { t } from "@/core/i18n";
+
+/**
+ * OfflineDetector — toast persistent buat network status.
+ *
+ * Design pattern: **discriminated state machine**, semua transisi state
+ * terjadi DI DALAM callback function (event handler / timer). Effect body
+ * cuma register listener — tidak ada setState sync di dalamnya.
+ *
+ * State transitions:
+ *   - hidden      → offline   (window 'offline' event atau initial page load offline)
+ *   - offline     → reconnected (window 'online' event, SETELAH pernah offline)
+ *   - reconnected → hidden    (auto-hide setelah 5 detik)
+ *   - any         → hidden    (user klik X)
+ *
+ * Kenapa pattern ini?
+ *   Rule `react-hooks/set-state-in-effect` (React 19) melarang setState
+ *   sync di effect body — termasuk conditional setState. Cuma boleh dari
+ *   callback (event handler, setTimeout, promise .then). Dengan state
+ *   machine yang diupdate via event listener, kita comply + code lebih
+ *   ekspresif.
+ */
+
+type AlertState =
+  | { kind: "hidden" }
+  | { kind: "offline" }
+  | { kind: "reconnected" };
+
+export function OfflineDetector() {
+  const [state, setState] = useState<AlertState>({ kind: "hidden" });
+
+  useEffect(() => {
+    // Local state yang gak perlu trigger render. Cukup closure variable.
+    let wasOffline = false;
+    let hideTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const clearHideTimer = () => {
+      if (hideTimer) {
+        clearTimeout(hideTimer);
+        hideTimer = null;
+      }
+    };
+
+    // --- Event handlers (setState di sini OK — ini callback) ---
+
+    const handleOffline = () => {
+      wasOffline = true;
+      clearHideTimer();
+      setState({ kind: "offline" });
+    };
+
+    const handleOnline = () => {
+      // Kalau belum pernah offline (e.g. initial page load online normal),
+      // skip — ga usah tampilin banner hijau yang spurious.
+      if (!wasOffline) return;
+
+      setState({ kind: "reconnected" });
+      hideTimer = setTimeout(() => {
+        wasOffline = false;
+        setState({ kind: "hidden" });
+      }, 5000);
+    };
+
+    // --- Register listeners (no setState here) ---
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    // Initial sync: kalau page ke-load dalam keadaan offline, tampilkan
+    // banner. Dispatched via microtask biar setState-nya dieksekusi dari
+    // promise callback, bukan sync dari effect body.
+    Promise.resolve().then(() => {
+      if (!navigator.onLine) {
+        handleOffline();
+      }
+    });
+
+    return () => {
+      clearHideTimer();
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  if (state.kind === "hidden") return null;
+
+  const isOnline = state.kind === "reconnected";
+
+  return (
+    <div className="fixed top-4 left-4 right-4 z-[9999] animate-in slide-in-from-top-5 duration-300">
+      <div
+        className="flex items-center justify-between px-4 py-3 rounded-lg shadow-2xl border-2"
+        style={{
+          backgroundColor: isOnline ? "#dcfce7" : "#fee2e2",
+          borderColor: isOnline ? "#86efac" : "#fca5a5",
+        }}
+      >
+        <div className="flex items-center gap-3">
+          {isOnline ? (
+            <Wifi className="h-5 w-5 text-green-700 flex-shrink-0" />
+          ) : (
+            <WifiOff className="h-5 w-5 text-red-700 flex-shrink-0" />
+          )}
+          <p
+            className={`text-sm font-semibold ${isOnline ? "text-green-900" : "text-red-900"
+              }`}
+          >
+            {isOnline ? t("offline.reconnected") : t("offline.disconnected")}
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6"
+          onClick={() => setState({ kind: "hidden" })}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+
+################################################################
+##  core/constants/
+################################################################
+
+
+================================================
+FILE: src/core/constants/index.ts
+Lines: 1
+================================================
+
+export { ROUTES, type RouteKey, type RoutePath } from "./routes";
+
+
+
+================================================
+FILE: src/core/constants/routes.ts
+Lines: 12
+================================================
+
+export const ROUTES = {
+  HOME: "/",
+  LOGIN: "/login",
+  DASHBOARD: "/dashboard",
+  OVERVIEW: "/overview",
+  PROFILE: "/profile",
+  SETTINGS: "/settings",
+  ADMIN: "/admin",
+} as const;
+
+export type RouteKey = keyof typeof ROUTES;
+export type RoutePath = (typeof ROUTES)[RouteKey];
+
+
+
+################################################################
+##  core/i18n/ (ts)
+################################################################
+
+
+================================================
+FILE: src/core/i18n/index.ts
+Lines: 121
+================================================
+
+/**
+ * i18n — Lightweight translation helper.
+ *
+ * Design:
+ * - Zero runtime dependency. Cuma JSON + function.
+ * - Type-safe key lookup berdasarkan struktur id.json (source of truth).
+ * - Support param interpolation: t("dashboard.welcomeMessage", { appName: "Acme" })
+ * - Default locale diambil dari appConfig.locale.default.
+ *
+ * Usage:
+ *   import { t } from "@/core/i18n";
+ *   t("common.loading")
+ *   t("dashboard.welcomeMessage", { appName: "Acme" })
+ *   t("common.loading", undefined, "en")
+ *
+ * Kenapa gak pake next-intl / react-i18next?
+ * - Boilerplate ini target: ringan, zero config, config-driven.
+ * - Nanti kalau butuh locale switcher runtime + ICU format kompleks,
+ *   baru migrate ke next-intl. API t() di sini udah kompatibel.
+ */
+
+import id from "./locales/id.json";
+import en from "./locales/en.json";
+import { appConfig, type Locale } from "@/config";
+
+const locales = { id, en } as const;
+
+/** Source dictionary — id.json jadi "contract" untuk key type safety. */
+type Dict = typeof id;
+
+/**
+ * Recursive type yang generate semua dotted key dari nested JSON.
+ * Contoh: "common.loading" | "auth.emailLabel" | "auth.validation.emailRequired"
+ */
+type NestedKey<T, Prefix extends string = ""> = {
+  [K in keyof T & string]: T[K] extends string
+  ? `${Prefix}${K}`
+  : T[K] extends object
+  ? NestedKey<T[K], `${Prefix}${K}.`>
+  : never;
+}[keyof T & string];
+
+export type TranslationKey = NestedKey<Dict>;
+
+/**
+ * Resolve dotted path jadi string value dari object.
+ * Kalau gak ketemu atau bukan string, return undefined.
+ */
+function resolveKey(dict: unknown, path: string): string | undefined {
+  const value = path.split(".").reduce<unknown>((acc, segment) => {
+    if (acc && typeof acc === "object" && segment in acc) {
+      return (acc as Record<string, unknown>)[segment];
+    }
+    return undefined;
+  }, dict);
+
+  return typeof value === "string" ? value : undefined;
+}
+
+/**
+ * Replace {param} placeholder di string dengan value dari params object.
+ */
+function interpolate(
+  template: string,
+  params?: Record<string, string | number>
+): string {
+  if (!params) return template;
+  return Object.entries(params).reduce(
+    (str, [key, value]) =>
+      str.replace(new RegExp(`\\{${key}\\}`, "g"), String(value)),
+    template
+  );
+}
+
+/**
+ * Main translation function.
+ *
+ * @param key       Dotted path ke translation (type-safe).
+ * @param params    Optional — untuk replace {placeholder} di string.
+ * @param locale    Optional — override default locale dari appConfig.
+ * @returns         Translated string, atau key itu sendiri kalau gak ketemu.
+ */
+export function t(
+  key: TranslationKey,
+  params?: Record<string, string | number>,
+  locale?: Locale
+): string {
+  const activeLocale = locale ?? (appConfig.locale.default as Locale);
+  const dict = locales[activeLocale] ?? locales.id;
+
+  const value = resolveKey(dict, key);
+
+  // Fallback ke id.json kalau locale aktif gak punya key-nya
+  if (value === undefined && activeLocale !== "id") {
+    const fallback = resolveKey(locales.id, key);
+    if (fallback !== undefined) return interpolate(fallback, params);
+  }
+
+  if (value === undefined) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(`[i18n] Missing translation: "${key}"`);
+    }
+    return key;
+  }
+
+  return interpolate(value, params);
+}
+
+/**
+ * Get current default locale dari config.
+ */
+export function getCurrentLocale(): Locale {
+  return appConfig.locale.default as Locale;
+}
+
+/**
+ * Get semua locale yang available.
+ */
+export function getAvailableLocales(): readonly Locale[] {
+  return appConfig.locale.available;
+}
+
+
+
+################################################################
+##  core/i18n/locales/ (json)
+################################################################
+
+
+================================================
+FILE: src/core/i18n/locales/en.json
+Lines: 140
+================================================
+
+{
+  "common": {
+    "loading": "Loading...",
+    "redirecting": "Redirecting...",
+    "authenticating": "Authenticating...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "search": "Search",
+    "loggingIn": "Signing in...",
+    "login": "Sign in",
+    "logout": "Sign out",
+    "comingSoon": "Coming soon",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "auth": {
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "emailPlaceholder": "email@example.com",
+    "passwordPlaceholder": "Enter your password",
+    "forgotPassword": "Forgot password?",
+    "contactAdmin": "Contact Administrator",
+    "invalidCredentials": "Invalid email or password",
+    "loginFailed": "Login failed. Please try again.",
+    "accountNotRegistered": "Account is not registered. Please contact administrator.",
+    "accountDeactivated": "Your account has been deactivated. Please contact administrator.",
+    "genericError": "Something went wrong. Please try again.",
+    "logoutConfirmTitle": "Sign out of Application",
+    "logoutConfirmDescription": "Are you sure you want to sign out of this account?",
+    "logoutConfirmButton": "Sign out",
+    "signInWithEmail": "Sign in with Email",
+    "signInWithGoogle": "Sign in with Google",
+    "orContinueWith": "or continue with",
+    "tabPassword": "Password",
+    "tabMagicLink": "Magic Link",
+    "sendMagicLink": "Send Magic Link",
+    "sendingMagicLink": "Sending...",
+    "magicLinkSent": "A sign-in link has been sent to your email. Check your inbox and click the link to continue.",
+    "callbackError": "Failed to process authentication. Please try again.",
+    "sessionExpired": "Your session has expired. Please sign in again.",
+    "validation": {
+      "emailRequired": "Email is required",
+      "emailInvalid": "Invalid email format",
+      "passwordRequired": "Password is required",
+      "passwordMinLength": "Password must be at least 6 characters"
+    }
+  },
+  "dashboard": {
+    "pageTitle": "Dashboard",
+    "greetingMorning": "Good morning",
+    "greetingAfternoon": "Good afternoon",
+    "greetingEvening": "Good evening",
+    "greetingNight": "Good night",
+    "welcomeMessage": "Welcome to {appName}",
+    "anonymousUser": "User",
+    "featuresTitle": "Features",
+    "features": {
+      "dashboardTitle": "Dashboard",
+      "dashboardDesc": "Activity summary and metrics",
+      "usersTitle": "Users",
+      "usersDesc": "Manage users and permissions",
+      "activityTitle": "Activity",
+      "activityDesc": "System logs and history",
+      "reportsTitle": "Reports",
+      "reportsDesc": "Statistics and analytics"
+    },
+    "underDevelopmentTitle": "System Under Development",
+    "underDevelopmentMessage": "{appName} is currently under development. Features will be available soon. Use the navigation menu to access available pages."
+  },
+  "overview": {
+    "pageTitle": "Overview",
+    "pageSubtitle": "System overview and statistics",
+    "placeholderTitle": "Overview Page",
+    "placeholderMessage": "This page is under development. Statistics and overview will be displayed here."
+  },
+  "profile": {
+    "pageTitle": "My Profile",
+    "pageSubtitle": "Account information and profile settings",
+    "accountInfoTitle": "Account Information",
+    "fullNameLabel": "Full Name",
+    "roleLabel": "Role",
+    "statusLabel": "Account Status",
+    "editComingSoon": "Profile editing feature is under development"
+  },
+  "settings": {
+    "pageTitle": "Settings",
+    "pageSubtitle": "System configuration and preferences",
+    "placeholderTitle": "Settings Page",
+    "placeholderMessage": "This page is under development. System settings will be available here."
+  },
+  "admin": {
+    "pageTitle": "Admin Panel",
+    "pageSubtitle": "Administrator-only access",
+    "loggedInAs": "You are logged in as {name} with the role of {role}",
+    "menuTitle": "Administration Menu",
+    "menu": {
+      "usersTitle": "User Management",
+      "usersDesc": "Manage accounts and user access",
+      "masterDataTitle": "Master Data",
+      "masterDataDesc": "Manage reference data and system configuration",
+      "permissionsTitle": "Permissions",
+      "permissionsDesc": "Configure roles and user permissions"
+    },
+    "placeholderMessage": "Administration features are under development and will be available soon.",
+    "forbiddenTitle": "Access Denied",
+    "forbiddenMessage": "You do not have permission to access this page."
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "overview": "Overview",
+    "profile": "Profile",
+    "settings": "Settings",
+    "admin": "Admin",
+    "menu": "Menu",
+    "administration": "Administration"
+  },
+  "userMenu": {
+    "myProfile": "My Profile"
+  },
+  "roles": {
+    "super_admin": "Super Admin",
+    "admin": "Admin",
+    "editor": "Editor",
+    "viewer": "Viewer",
+    "user": "User"
+  },
+  "offline": {
+    "disconnected": "No internet connection",
+    "reconnected": "Internet connection restored"
+  }
+}
+
+
+
+================================================
+FILE: src/core/i18n/locales/id.json
+Lines: 140
+================================================
+
+{
+  "common": {
+    "loading": "Memuat...",
+    "redirecting": "Mengalihkan...",
+    "authenticating": "Mengautentikasi...",
+    "save": "Simpan",
+    "cancel": "Batal",
+    "delete": "Hapus",
+    "edit": "Edit",
+    "confirm": "Konfirmasi",
+    "close": "Tutup",
+    "back": "Kembali",
+    "next": "Selanjutnya",
+    "submit": "Kirim",
+    "search": "Cari",
+    "loggingIn": "Masuk...",
+    "login": "Masuk",
+    "logout": "Keluar",
+    "comingSoon": "Segera hadir",
+    "error": "Terjadi kesalahan",
+    "retry": "Coba lagi",
+    "active": "Aktif",
+    "inactive": "Nonaktif"
+  },
+  "auth": {
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "emailPlaceholder": "email@example.com",
+    "passwordPlaceholder": "Masukkan password",
+    "forgotPassword": "Lupa password?",
+    "contactAdmin": "Hubungi Administrator",
+    "invalidCredentials": "Email atau password salah",
+    "loginFailed": "Gagal login. Silakan coba lagi.",
+    "accountNotRegistered": "Akun tidak terdaftar dalam sistem. Hubungi administrator.",
+    "accountDeactivated": "Akun Anda telah dinonaktifkan. Hubungi administrator.",
+    "genericError": "Terjadi kesalahan. Silakan coba lagi.",
+    "logoutConfirmTitle": "Keluar dari Aplikasi",
+    "logoutConfirmDescription": "Apakah Anda yakin ingin keluar dari akun ini?",
+    "logoutConfirmButton": "Keluar",
+    "signInWithEmail": "Masuk dengan Email",
+    "signInWithGoogle": "Masuk dengan Google",
+    "orContinueWith": "atau lanjut dengan",
+    "tabPassword": "Password",
+    "tabMagicLink": "Magic Link",
+    "sendMagicLink": "Kirim Magic Link",
+    "sendingMagicLink": "Mengirim...",
+    "magicLinkSent": "Link masuk telah dikirim ke email Anda. Periksa inbox dan klik link untuk melanjutkan.",
+    "callbackError": "Gagal memproses autentikasi. Silakan coba lagi.",
+    "sessionExpired": "Sesi Anda telah berakhir. Silakan masuk kembali.",
+    "validation": {
+      "emailRequired": "Email wajib diisi",
+      "emailInvalid": "Format email tidak valid",
+      "passwordRequired": "Password wajib diisi",
+      "passwordMinLength": "Password minimal 6 karakter"
+    }
+  },
+  "dashboard": {
+    "pageTitle": "Dashboard",
+    "greetingMorning": "Selamat pagi",
+    "greetingAfternoon": "Selamat siang",
+    "greetingEvening": "Selamat sore",
+    "greetingNight": "Selamat malam",
+    "welcomeMessage": "Selamat datang di {appName}",
+    "anonymousUser": "Pengguna",
+    "featuresTitle": "Fitur Sistem",
+    "features": {
+      "dashboardTitle": "Dashboard",
+      "dashboardDesc": "Ringkasan aktivitas dan metrik",
+      "usersTitle": "Pengguna",
+      "usersDesc": "Kelola pengguna dan hak akses",
+      "activityTitle": "Aktivitas",
+      "activityDesc": "Log dan riwayat sistem",
+      "reportsTitle": "Laporan",
+      "reportsDesc": "Statistik dan analitik"
+    },
+    "underDevelopmentTitle": "Sistem Sedang Dikembangkan",
+    "underDevelopmentMessage": "{appName} sedang dalam tahap pengembangan. Fitur-fitur akan segera tersedia. Gunakan menu navigasi untuk mengakses halaman yang tersedia."
+  },
+  "overview": {
+    "pageTitle": "Overview",
+    "pageSubtitle": "Ringkasan dan statistik sistem",
+    "placeholderTitle": "Halaman Overview",
+    "placeholderMessage": "Halaman ini sedang dalam pengembangan. Statistik dan ringkasan akan ditampilkan di sini."
+  },
+  "profile": {
+    "pageTitle": "Profil Saya",
+    "pageSubtitle": "Informasi akun dan pengaturan profil",
+    "accountInfoTitle": "Informasi Akun",
+    "fullNameLabel": "Nama Lengkap",
+    "roleLabel": "Peran",
+    "statusLabel": "Status Akun",
+    "editComingSoon": "Fitur edit profil sedang dalam pengembangan"
+  },
+  "settings": {
+    "pageTitle": "Pengaturan",
+    "pageSubtitle": "Konfigurasi dan preferensi sistem",
+    "placeholderTitle": "Halaman Pengaturan",
+    "placeholderMessage": "Halaman ini sedang dalam pengembangan. Pengaturan sistem akan tersedia di sini."
+  },
+  "admin": {
+    "pageTitle": "Panel Admin",
+    "pageSubtitle": "Akses khusus administrator sistem",
+    "loggedInAs": "Anda login sebagai {name} dengan peran {role}",
+    "menuTitle": "Menu Administrasi",
+    "menu": {
+      "usersTitle": "Manajemen Pengguna",
+      "usersDesc": "Kelola akun dan hak akses pengguna sistem",
+      "masterDataTitle": "Data Master",
+      "masterDataDesc": "Kelola data referensi dan konfigurasi sistem",
+      "permissionsTitle": "Hak Akses",
+      "permissionsDesc": "Atur peran dan izin pengguna"
+    },
+    "placeholderMessage": "Fitur administrasi sedang dalam pengembangan dan akan segera tersedia.",
+    "forbiddenTitle": "Akses Ditolak",
+    "forbiddenMessage": "Anda tidak memiliki izin untuk mengakses halaman ini."
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "overview": "Overview",
+    "profile": "Profil",
+    "settings": "Pengaturan",
+    "admin": "Admin",
+    "menu": "Menu",
+    "administration": "Administrasi"
+  },
+  "userMenu": {
+    "myProfile": "Profil Saya"
+  },
+  "roles": {
+    "super_admin": "Super Admin",
+    "admin": "Admin",
+    "editor": "Editor",
+    "viewer": "Viewer",
+    "user": "Pengguna"
+  },
+  "offline": {
+    "disconnected": "Tidak ada koneksi internet",
+    "reconnected": "Koneksi internet tersambung kembali"
+  }
+}
+
+
+
+################################################################
+##  core/layout/
+################################################################
+
+
+================================================
+FILE: src/core/layout/app-sidebar.tsx
+Lines: 72
+================================================
+
+"use client";
+
+import { usePathname } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+import { useAuthStore } from "@/core/auth/store";
+import { cn } from "@/core/lib/utils";
+import { getNavItems } from "./nav-config";
+import { brandingConfig, isAdminRole } from "@/config";
+import { t } from "@/core/i18n";
+
+export function AppSidebar() {
+  const pathname = usePathname();
+  const user = useAuthStore((state) => state.user);
+  const userIsAdmin = user?.role ? isAdminRole(user.role) : false;
+  const sections = getNavItems(userIsAdmin);
+
+  return (
+    <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-50 border-r bg-background">
+      {/* Logo area */}
+      <div className="flex h-14 items-center gap-3 border-b px-4">
+        <div className="relative w-8 h-8 flex-shrink-0">
+          <Image
+            src={brandingConfig.assets.logoSmall}
+            alt={brandingConfig.shortName}
+            fill
+            className="object-contain"
+          />
+        </div>
+        <span className="font-semibold text-sm truncate">
+          {brandingConfig.shortName}
+        </span>
+      </div>
+
+      <nav className="flex-1 overflow-y-auto p-4">
+        {sections.map((section, idx) => (
+          <div key={idx} className={cn(idx > 0 && "mt-6")}>
+            {section.titleKey && (
+              <p className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {t(section.titleKey)}
+              </p>
+            )}
+            <div className="space-y-1">
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                const isActive =
+                  pathname === item.href ||
+                  pathname.startsWith(item.href + "/");
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    )}
+                  >
+                    <Icon className="h-5 w-5 flex-shrink-0" />
+                    <span className="font-medium">{t(item.titleKey)}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
+    </aside>
+  );
+}
+
+
+
+================================================
+FILE: src/core/layout/header.tsx
+Lines: 36
+================================================
+
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { UserMenu } from "./user-menu";
+import { ROUTES } from "@/core/constants";
+import { brandingConfig } from "@/config";
+
+/**
+ * Header — dipakai sebagai standalone header component.
+ * Note: DashboardLayout punya inline header sendiri untuk kontrol yang lebih
+ * fine-grained. Ini dipake untuk halaman di luar dashboard yang butuh header generic.
+ */
+export function Header() {
+  return (
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background px-4">
+      <Link href={ROUTES.DASHBOARD} className="flex items-center gap-2">
+        <div className="relative w-8 h-8">
+          <Image
+            src={brandingConfig.assets.logoSmall}
+            alt={brandingConfig.shortName}
+            fill
+            className="object-contain"
+          />
+        </div>
+        <span className="font-semibold text-sm md:text-base">
+          {brandingConfig.shortName}
+        </span>
+      </Link>
+
+      <div className="flex-1" />
+
+      <UserMenu />
+    </header>
+  );
+}
+
+
+
+================================================
+FILE: src/core/layout/index.ts
+Lines: 16
+================================================
+
+/**
+ * Layout Components
+ */
+
+export { Header } from "./header";
+export { AppSidebar } from "./app-sidebar";
+export { MobileBottomNav } from "./mobile-nav";
+export { UserMenu } from "./user-menu";
+export {
+  getNavItems,
+  getAllNavItems,
+  mainNavItems,
+  adminNavItems,
+  type NavItem,
+  type NavSection,
+} from "./nav-config";
+
+
+
+================================================
+FILE: src/core/layout/mobile-nav.tsx
+Lines: 47
+================================================
+
+"use client";
+
+import { usePathname } from "next/navigation";
+import Link from "next/link";
+import { useAuthStore } from "@/core/auth/store";
+import { cn } from "@/core/lib/utils";
+import { getAllNavItems } from "./nav-config";
+import { isAdminRole } from "@/config";
+import { t } from "@/core/i18n";
+
+export function MobileBottomNav() {
+  const pathname = usePathname();
+  const user = useAuthStore((state) => state.user);
+  const userIsAdmin = user?.role ? isAdminRole(user.role) : false;
+  // Mobile: max 5 items
+  const navItems = getAllNavItems(userIsAdmin).slice(0, 5);
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background md:hidden safe-bottom">
+      <div className="flex items-center justify-around h-16 px-2">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive =
+            pathname === item.href || pathname.startsWith(item.href + "/");
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors min-w-[56px]",
+                isActive
+                  ? "text-primary bg-primary/10"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              )}
+            >
+              <Icon className="h-5 w-5" />
+              <span className="text-[10px] font-medium leading-tight text-center">
+                {t(item.titleKey)}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
+
+
+================================================
+FILE: src/core/layout/nav-config.ts
+Lines: 83
+================================================
+
+import {
+  LayoutDashboard,
+  BarChart3,
+  User,
+  Settings,
+  ShieldCheck,
+  type LucideIcon,
+} from "lucide-react";
+import { ROUTES } from "@/core/constants";
+import { t, type TranslationKey } from "@/core/i18n";
+
+/**
+ * NavItem config — titleKey adalah i18n key, bukan literal.
+ * Label di-resolve saat render via `t(item.titleKey)`.
+ */
+export interface NavItem {
+  titleKey: TranslationKey;
+  href: string;
+  icon: LucideIcon;
+  adminOnly?: boolean;
+}
+
+export interface NavSection {
+  titleKey?: TranslationKey;
+  items: NavItem[];
+}
+
+export const mainNavItems: NavItem[] = [
+  {
+    titleKey: "navigation.dashboard",
+    href: ROUTES.DASHBOARD,
+    icon: LayoutDashboard,
+  },
+  {
+    titleKey: "navigation.overview",
+    href: ROUTES.OVERVIEW,
+    icon: BarChart3,
+  },
+  {
+    titleKey: "navigation.profile",
+    href: ROUTES.PROFILE,
+    icon: User,
+  },
+  {
+    titleKey: "navigation.settings",
+    href: ROUTES.SETTINGS,
+    icon: Settings,
+  },
+];
+
+export const adminNavItems: NavItem[] = [
+  {
+    titleKey: "navigation.admin",
+    href: ROUTES.ADMIN,
+    icon: ShieldCheck,
+    adminOnly: true,
+  },
+];
+
+export function getNavItems(isAdmin: boolean): NavSection[] {
+  if (isAdmin) {
+    return [
+      { titleKey: "navigation.menu", items: mainNavItems },
+      { titleKey: "navigation.administration", items: adminNavItems },
+    ];
+  }
+
+  return [{ items: mainNavItems }];
+}
+
+export function getAllNavItems(isAdmin: boolean): NavItem[] {
+  if (isAdmin) {
+    return [...mainNavItems, ...adminNavItems];
+  }
+  return mainNavItems;
+}
+
+/**
+ * Helper kalau butuh resolved label (misal untuk page title dinamis).
+ */
+export function getNavItemLabel(item: NavItem): string {
+  return t(item.titleKey);
+}
+
+
+
+================================================
+FILE: src/core/layout/user-menu.tsx
+Lines: 81
+================================================
+
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { LogOut, User, ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useAuthStore } from "@/core/auth/store";
+import { getInitials } from "@/core/lib/utils";
+import { ROUTES } from "@/core/constants";
+import { appConfig } from "@/config";
+import { t, type TranslationKey } from "@/core/i18n";
+
+export function UserMenu() {
+  const router = useRouter();
+  const user = useAuthStore((state) => state.user);
+  const storeLogout = useAuthStore((state) => state.logout);
+
+  const handleLogout = async () => {
+    await storeLogout();
+    router.push(appConfig.auth.postLogoutRedirect);
+  };
+
+  if (!user) return null;
+
+  // Translate role label; fallback ke raw role (dengan underscore dihapus) kalau belum ada di i18n
+  const roleLabel = (() => {
+    const key = `roles.${user.role}` as TranslationKey;
+    const translated = t(key);
+    // Kalau t() return key sendiri artinya belum ada translation — fallback humanize
+    return translated === key ? user.role.replace(/_/g, " ") : translated;
+  })();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="gap-2 px-2">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="text-xs bg-primary/10 text-primary">
+              {getInitials(user.full_name)}
+            </AvatarFallback>
+          </Avatar>
+          <span className="hidden sm:inline-block max-w-[120px] truncate text-sm font-medium">
+            {user.full_name}
+          </span>
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <div className="px-2 py-1.5">
+          <p className="text-sm font-medium truncate">{user.full_name}</p>
+          <p className="text-xs text-muted-foreground capitalize">
+            {roleLabel}
+          </p>
+        </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href={ROUTES.PROFILE} className="cursor-pointer">
+            <User className="mr-2 h-4 w-4" />
+            {t("userMenu.myProfile")}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={handleLogout}
+          className="text-destructive cursor-pointer focus:text-destructive"
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          {t("common.logout")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+
+
+################################################################
+##  core/lib/
+################################################################
+
+
+================================================
+FILE: src/core/lib/index.ts
+Lines: 9
+================================================
+
+/**
+ * @/core/lib — utility barrel.
+ *
+ * Supabase clients diimport langsung (tidak diekspor di sini) agar tree-shake
+ * tepat — kadang server-only, kadang browser-only.
+ */
+
+export { cn, getInitials } from "./utils";
+export { loginSchema, type LoginFormData } from "./validators";
+
+
+
+================================================
+FILE: src/core/lib/supabase/client.ts
+Lines: 9
+================================================
+
+import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from "@/core/types";
+
+export function createClient() {
+  return createBrowserClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
+
+
+
+================================================
+FILE: src/core/lib/supabase/index.ts
+Lines: 10
+================================================
+
+/**
+ * Supabase clients.
+ *
+ * - client.ts  → browser (Client Component)
+ * - server.ts  → RSC / Route Handler / Server Action
+ * - proxy.ts   → Next.js middleware (SSR session refresh)
+ *
+ * Import pakai file path langsung supaya tree-shake benar, misal:
+ *   import { createClient } from "@/core/lib/supabase/client";
+ */
+
+
+
+================================================
+FILE: src/core/lib/supabase/proxy.ts
+Lines: 35
+================================================
+
+import { createServerClient } from "@supabase/ssr";
+import { type NextRequest, NextResponse } from "next/server";
+import type { Database } from "@/core/types";
+
+export async function updateSession(request: NextRequest) {
+  let supabaseResponse = NextResponse.next({ request });
+
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          supabaseResponse = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  // Refresh session — JANGAN hapus ini, penting untuk SSR auth
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return { supabaseResponse, user };
+}
+
+
+
+================================================
+FILE: src/core/lib/supabase/server.ts
+Lines: 28
+================================================
+
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import type { Database } from "@/core/types";
+
+export async function createClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // Server Component — can be ignored
+          }
+        },
+      },
+    }
+  );
+}
+
+
+
+================================================
+FILE: src/core/lib/utils.ts
+Lines: 24
+================================================
+
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+export function getInitials(name: string): string {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .filter(Boolean)
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+/**
+ * NOTE: `isAdminRole` TIDAK ada di sini.
+ * Import dari `@/config` — satu source of truth (config-driven).
+ *
+ *   import { isAdminRole } from "@/config";
+ */
+
+
+
+================================================
+FILE: src/core/lib/validators.ts
+Lines: 15
+================================================
+
+import { z } from "zod";
+import { t } from "@/core/i18n";
+
+export const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, t("auth.validation.emailRequired"))
+    .email(t("auth.validation.emailInvalid")),
+  password: z
+    .string()
+    .min(1, t("auth.validation.passwordRequired"))
+    .min(6, t("auth.validation.passwordMinLength")),
+});
+
+export type LoginFormData = z.infer<typeof loginSchema>;
+
+
+
+################################################################
+##  core/types/
+################################################################
+
+
+================================================
+FILE: src/core/types/database.ts
+Lines: 148
+================================================
+
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
+export interface Database {
+  public: {
+    Tables: {
+      user_profiles: {
+        Row: {
+          id: string;
+          full_name: string;
+          email: string | null;
+          role: string;
+          avatar_url: string | null;
+          phone: string | null;
+          locale: string;
+          is_active: boolean;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          full_name?: string;
+          email?: string | null;
+          role?: string;
+          avatar_url?: string | null;
+          phone?: string | null;
+          locale?: string;
+          is_active?: boolean;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          full_name?: string;
+          email?: string | null;
+          role?: string;
+          avatar_url?: string | null;
+          phone?: string | null;
+          locale?: string;
+          is_active?: boolean;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      activity_logs: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          action: string;
+          resource_type: string | null;
+          resource_id: string | null;
+          metadata: Json;
+          ip_address: string | null;
+          user_agent: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          action: string;
+          resource_type?: string | null;
+          resource_id?: string | null;
+          metadata?: Json;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          action?: string;
+          resource_type?: string | null;
+          resource_id?: string | null;
+          metadata?: Json;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      stripe_events: {
+        Row: {
+          id: string;
+          type: string;
+          api_version: string | null;
+          payload: Json;
+          received_at: string;
+          processed_at: string | null;
+          error: string | null;
+          retry_count: number;
+        };
+        Insert: {
+          id: string;
+          type: string;
+          api_version?: string | null;
+          payload: Json;
+          received_at?: string;
+          processed_at?: string | null;
+          error?: string | null;
+          retry_count?: number;
+        };
+        Update: {
+          id?: string;
+          type?: string;
+          api_version?: string | null;
+          payload?: Json;
+          received_at?: string;
+          processed_at?: string | null;
+          error?: string | null;
+          retry_count?: number;
+        };
+        Relationships: [];
+      };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      is_admin: {
+        Args: { check_user_id: string };
+        Returns: boolean;
+      };
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+  };
+}
+
+export type Tables<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Row"];
+
+export type InsertDto<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Insert"];
+
+export type UpdateDto<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Update"];
+
+
+
+================================================
+FILE: src/core/types/index.ts
+Lines: 57
+================================================
+
+export type { Database, Tables, InsertDto, UpdateDto, Json } from "./database";
+
+import type { Tables, InsertDto, UpdateDto } from "./database";
+
+// --------------------------------------------------------------------
+// Core entity types
+// --------------------------------------------------------------------
+
+export type UserProfile = Tables<"user_profiles">;
+export type UserProfileInsert = InsertDto<"user_profiles">;
+export type UserProfileUpdate = UpdateDto<"user_profiles">;
+
+export type ActivityLog = Tables<"activity_logs">;
+export type ActivityLogInsert = InsertDto<"activity_logs">;
+
+export type StripeEvent = Tables<"stripe_events">;
+export type StripeEventInsert = InsertDto<"stripe_events">;
+
+// --------------------------------------------------------------------
+// Module metadata typing (opt-in)
+// --------------------------------------------------------------------
+/**
+ * Convention for typing metadata payload per module.
+ *
+ * Module defines shape di modules/<name>/types.ts, lalu augment:
+ *
+ *   declare module "@/core/types" {
+ *     interface UserProfileMetadata {
+ *       commerce?: { shipping_addresses: Address[] };
+ *     }
+ *   }
+ *
+ * Core code cuma pegang `UserProfileMetadata` — empty by default.
+ * Per-module typing tambah key sendiri via declaration merging.
+ */
+export interface UserProfileMetadata {
+  // Empty — modules extend via declaration merging
+}
+
+/**
+ * Helper untuk akses metadata dengan type safety.
+ *
+ * @example
+ *   const commerce = getProfileMetadata(user, "commerce");
+ */
+export function getProfileMetadata<K extends keyof UserProfileMetadata>(
+  profile: UserProfile,
+  key: K
+): UserProfileMetadata[K] | undefined {
+  const meta = profile.metadata as Record<string, unknown>;
+  return meta?.[key as string] as UserProfileMetadata[K] | undefined;
+}
+
+// --------------------------------------------------------------------
+// Role — forwarded dari config (single source of truth)
+// --------------------------------------------------------------------
+export type { UserRole } from "@/config";
+
+
+
+################################################################
+##  core/ root (index.ts)
+################################################################
+
+
+================================================
+FILE: src/core/index.ts
+Lines: 21
+================================================
+
+/**
+ * @/core — master barrel.
+ *
+ * Deep import tetap boleh & dianjurkan buat tree-shake optimal, misal:
+ *   import { useAuthStore } from "@/core/auth/store";
+ *   import { FullPageLoader } from "@/core/components";
+ *
+ * Barrel ini dipakai kalau butuh multiple symbol dari beberapa subdomain
+ * sekaligus (umumnya di app-level wiring).
+ *
+ * Supabase clients TIDAK di-export di sini karena server/client/proxy
+ * harus diimport dari file spesifik biar tree-shake-nya tepat.
+ */
+
+export * from "./auth";
+export * from "./layout";
+export * from "./components";
+export { cn, getInitials, loginSchema, type LoginFormData } from "./lib";
+export * from "./i18n";
+export * from "./types";
+export * from "./constants";
+
+
+
+################################################################
+##  modules/
+################################################################
+
+
+================================================
+FILE: src/modules/admin/index.ts
+Lines: 8
+================================================
+
+/**
+ * @/modules/admin — public surface.
+ *
+ * Phase 1: baru skeleton (cuma module.config.ts).
+ * Phase 2 akan tambah components, services, validators, migrations.
+ */
+
+export { adminModule, type AdminModuleConfig } from "./module.config";
+
+
+
+================================================
+FILE: src/modules/admin/module.config.ts
+Lines: 24
+================================================
+
+/**
+ * Module: Admin (01)
+ *
+ * DNA: Interaksi dominant.
+ * Role-gated interface buat user/data management, metrik, log aktivitas.
+ * Biasanya dipakai sebagai backbone internal buat semua platform lain.
+ *
+ * Phase 2+ akan isi folder ini dengan:
+ *   - components/  (data tables, form wrappers, metric cards)
+ *   - services/    (user management, activity log, audit)
+ *   - migrations/  (activity_logs, dst)
+ */
+
+import { appConfig } from "@/config";
+
+export const adminModule = {
+  name: "admin" as const,
+  enabled: appConfig.modules.admin.enabled,
+  basePath: appConfig.modules.admin.path,
+  requiredRoles: appConfig.auth.adminRoles,
+  dependencies: [] as const,
+} as const;
+
+export type AdminModuleConfig = typeof adminModule;
+
+
+
+================================================
+FILE: src/modules/blog/index.ts
+Lines: 1
+================================================
+
+export { blogModule, type BlogModuleConfig } from "./module.config";
+
+
+
+================================================
+FILE: src/modules/blog/module.config.ts
+Lines: 17
+================================================
+
+/**
+ * Module: blog (placeholder)
+ *
+ * Akan diaktifkan di Phase 2/3 sesuai roadmap boilerplate.
+ * Toggle enable-nya di `src/config/app.config.ts`.
+ */
+
+import { appConfig } from "@/config";
+
+export const blogModule = {
+  name: "blog" as const,
+  enabled: appConfig.modules.blog.enabled,
+  basePath: appConfig.modules.blog.path,
+  dependencies: [] as const,
+} as const;
+
+export type BlogModuleConfig = typeof blogModule;
+
+
+
+================================================
+FILE: src/modules/chat/index.ts
+Lines: 1
+================================================
+
+export { chatModule, type ChatModuleConfig } from "./module.config";
+
+
+
+================================================
+FILE: src/modules/chat/module.config.ts
+Lines: 17
+================================================
+
+/**
+ * Module: chat (placeholder)
+ *
+ * Akan diaktifkan di Phase 2/3 sesuai roadmap boilerplate.
+ * Toggle enable-nya di `src/config/app.config.ts`.
+ */
+
+import { appConfig } from "@/config";
+
+export const chatModule = {
+  name: "chat" as const,
+  enabled: appConfig.modules.chat.enabled,
+  basePath: appConfig.modules.chat.path,
+  dependencies: [] as const,
+} as const;
+
+export type ChatModuleConfig = typeof chatModule;
+
+
+
+================================================
+FILE: src/modules/commerce/index.ts
+Lines: 1
+================================================
+
+export { commerceModule, type CommerceModuleConfig } from "./module.config";
+
+
+
+================================================
+FILE: src/modules/commerce/module.config.ts
+Lines: 17
+================================================
+
+/**
+ * Module: commerce (placeholder)
+ *
+ * Akan diaktifkan di Phase 2/3 sesuai roadmap boilerplate.
+ * Toggle enable-nya di `src/config/app.config.ts`.
+ */
+
+import { appConfig } from "@/config";
+
+export const commerceModule = {
+  name: "commerce" as const,
+  enabled: appConfig.modules.commerce.enabled,
+  basePath: appConfig.modules.commerce.path,
+  dependencies: [] as const,
+} as const;
+
+export type CommerceModuleConfig = typeof commerceModule;
+
+
+
+================================================
+FILE: src/modules/forum/index.ts
+Lines: 1
+================================================
+
+export { forumModule, type ForumModuleConfig } from "./module.config";
+
+
+
+================================================
+FILE: src/modules/forum/module.config.ts
+Lines: 17
+================================================
+
+/**
+ * Module: forum (placeholder)
+ *
+ * Akan diaktifkan di Phase 2/3 sesuai roadmap boilerplate.
+ * Toggle enable-nya di `src/config/app.config.ts`.
+ */
+
+import { appConfig } from "@/config";
+
+export const forumModule = {
+  name: "forum" as const,
+  enabled: appConfig.modules.forum.enabled,
+  basePath: appConfig.modules.forum.path,
+  dependencies: [] as const,
+} as const;
+
+export type ForumModuleConfig = typeof forumModule;
+
+
+
+================================================
+FILE: src/modules/landing/index.ts
+Lines: 1
+================================================
+
+export { landingModule, type LandingModuleConfig } from "./module.config";
+
+
+
+================================================
+FILE: src/modules/landing/module.config.ts
+Lines: 17
+================================================
+
+/**
+ * Module: landing (placeholder)
+ *
+ * Akan diaktifkan di Phase 2/3 sesuai roadmap boilerplate.
+ * Toggle enable-nya di `src/config/app.config.ts`.
+ */
+
+import { appConfig } from "@/config";
+
+export const landingModule = {
+  name: "landing" as const,
+  enabled: appConfig.modules.landing.enabled,
+  basePath: appConfig.modules.landing.path,
+  dependencies: [] as const,
+} as const;
+
+export type LandingModuleConfig = typeof landingModule;
+
+
+
+================================================
+FILE: src/modules/project/index.ts
+Lines: 1
+================================================
+
+export { projectModule, type ProjectModuleConfig } from "./module.config";
+
+
+
+================================================
+FILE: src/modules/project/module.config.ts
+Lines: 17
+================================================
+
+/**
+ * Module: project (placeholder)
+ *
+ * Akan diaktifkan di Phase 2/3 sesuai roadmap boilerplate.
+ * Toggle enable-nya di `src/config/app.config.ts`.
+ */
+
+import { appConfig } from "@/config";
+
+export const projectModule = {
+  name: "project" as const,
+  enabled: appConfig.modules.project.enabled,
+  basePath: appConfig.modules.project.path,
+  dependencies: [] as const,
+} as const;
+
+export type ProjectModuleConfig = typeof projectModule;
+
+
+
+================================================
+FILE: src/modules/saas/index.ts
+Lines: 1
+================================================
+
+export { saasModule, type SaasModuleConfig } from "./module.config";
+
+
+
+================================================
+FILE: src/modules/saas/module.config.ts
+Lines: 17
+================================================
+
+/**
+ * Module: saas (placeholder)
+ *
+ * Akan diaktifkan di Phase 2/3 sesuai roadmap boilerplate.
+ * Toggle enable-nya di `src/config/app.config.ts`.
+ */
+
+import { appConfig } from "@/config";
+
+export const saasModule = {
+  name: "saas" as const,
+  enabled: appConfig.modules.saas.enabled,
+  basePath: appConfig.modules.saas.path,
+  dependencies: [] as const,
+} as const;
+
+export type SaasModuleConfig = typeof saasModule;
+
+
+
+################################################################
+##  shared/
+################################################################
+
+
+################################################################
+##  src/ root (proxy.ts + globals.css)
+################################################################
+
+
+================================================
+FILE: src/proxy.ts
+Lines: 46
+================================================
+
+import { type NextRequest, NextResponse } from "next/server";
+import { updateSession } from "@/core/lib/supabase/proxy";
+import { appConfig } from "@/config";
+import { ROUTES } from "@/core/constants";
+
+const publicRoutes = [ROUTES.LOGIN, "/api/auth/callback"];
+
+export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Allow public routes
+  if (publicRoutes.some((route) => pathname.startsWith(route))) {
+    const { supabaseResponse } = await updateSession(request);
+    return supabaseResponse;
+  }
+
+  // Check authentication (silent refresh di dalam updateSession)
+  const { supabaseResponse, user } = await updateSession(request);
+
+  // Redirect to login if not authenticated — set returnTo untuk deep-link
+  if (!user) {
+    const loginUrl = new URL(appConfig.auth.postLogoutRedirect, request.url);
+
+    // Jangan set returnTo kalau root atau target login itu sendiri
+    if (pathname && pathname !== "/" && pathname !== appConfig.auth.postLogoutRedirect) {
+      loginUrl.searchParams.set("returnTo", pathname + request.nextUrl.search);
+    }
+
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return supabaseResponse;
+}
+
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
+};
+
+
+
+################################################################
+##  app/ globals.css
+################################################################
+
+
+================================================
+FILE: src/app/globals.css
+Lines: 207
+================================================
+
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Dark mode variant for Tailwind v4 */
+@custom-variant dark (&:is(.dark *));
+
+/* =============================================
+   CSS VARIABLES - Theme Colors
+   ============================================= */
+
+:root {
+  --radius: 0.625rem;
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.129 0.042 264.695);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.129 0.042 264.695);
+  --primary: oklch(0.208 0.042 265.755);
+  --primary-foreground: oklch(0.984 0.003 247.858);
+  --secondary: oklch(0.968 0.007 247.896);
+  --secondary-foreground: oklch(0.208 0.042 265.755);
+  --muted: oklch(0.968 0.007 247.896);
+  --muted-foreground: oklch(0.554 0.046 257.417);
+  --accent: oklch(0.968 0.007 247.896);
+  --accent-foreground: oklch(0.208 0.042 265.755);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.929 0.013 255.508);
+  --input: oklch(0.929 0.013 255.508);
+  --ring: oklch(0.704 0.04 256.788);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.984 0.003 247.858);
+  --sidebar-foreground: oklch(0.129 0.042 264.695);
+  --sidebar-primary: oklch(0.208 0.042 265.755);
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-accent: oklch(0.968 0.007 247.896);
+  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
+  --sidebar-border: oklch(0.929 0.013 255.508);
+  --sidebar-ring: oklch(0.704 0.04 256.788);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.129 0.042 264.695);
+}
+
+.dark {
+  --background: oklch(0.129 0.042 264.695);
+  --foreground: oklch(0.984 0.003 247.858);
+  --card: oklch(0.208 0.042 265.755);
+  --card-foreground: oklch(0.984 0.003 247.858);
+  --popover: oklch(0.208 0.042 265.755);
+  --popover-foreground: oklch(0.984 0.003 247.858);
+  --primary: oklch(0.929 0.013 255.508);
+  --primary-foreground: oklch(0.208 0.042 265.755);
+  --secondary: oklch(0.279 0.041 260.031);
+  --secondary-foreground: oklch(0.984 0.003 247.858);
+  --muted: oklch(0.279 0.041 260.031);
+  --muted-foreground: oklch(0.704 0.04 256.788);
+  --accent: oklch(0.279 0.041 260.031);
+  --accent-foreground: oklch(0.984 0.003 247.858);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.551 0.027 264.364);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.208 0.042 265.755);
+  --sidebar-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-accent: oklch(0.279 0.041 260.031);
+  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.551 0.027 264.364);
+}
+
+/* =============================================
+   TAILWIND THEME INLINE
+   ============================================= */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+}
+
+/* =============================================
+   BASE STYLES
+   ============================================= */
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* =============================================
+   CUSTOM STYLES
+   ============================================= */
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--muted);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  opacity: 0.8;
+}
+
+/* Hide scrollbar but keep functionality */
+.hide-scrollbar,
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar,
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Safe area padding for mobile */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+/* Mobile nav safe area */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* Ensure content doesn't hide behind bottom nav */
+.pb-mobile-nav {
+  padding-bottom: 5rem;
+}
+
+@media (min-width: 768px) {
+  .pb-mobile-nav {
+    padding-bottom: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  main {
+    padding-bottom: 5rem !important;
+  }
+}
+
+
+
+
+################################################################
+##  public/ (text files collected, binary listed only)
+################################################################
+
+
+################################################################
+##  SUMMARY
+################################################################
+Found   : 77 / 77
+Missing : 0
+Coverage: 100%
