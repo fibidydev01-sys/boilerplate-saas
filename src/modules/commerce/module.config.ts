@@ -1,8 +1,10 @@
 /**
- * Module: commerce (placeholder)
+ * Module: commerce
  *
- * Akan diaktifkan di Phase 2/3 sesuai roadmap boilerplate.
- * Toggle enable-nya di `src/config/app.config.ts`.
+ * DNA: Product catalog + payment integration.
+ *
+ * Phase 1: Lemon Squeezy credentials + products read-only.
+ * Phase 2+: Orders, customers, subscriptions, webhooks.
  */
 
 import { appConfig } from "@/config";
@@ -12,6 +14,7 @@ export const commerceModule = {
   enabled: appConfig.modules.commerce.enabled,
   basePath: appConfig.modules.commerce.path,
   dependencies: [] as const,
+  provider: "lemonsqueezy" as const,
 } as const;
 
 export type CommerceModuleConfig = typeof commerceModule;

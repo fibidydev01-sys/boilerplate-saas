@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import {
   Form,
   FormControl,
@@ -23,22 +22,25 @@ import {
   Sparkles,
 } from "lucide-react";
 import { createClient } from "@/core/lib/supabase/client";
+import { magicLinkSchema, type MagicLinkFormData } from "@/core/lib/validators";
+import { appConfig } from "@/config";
 import { t } from "@/core/i18n";
-
-const magicLinkSchema = z.object({
-  email: z
-    .string()
-    .min(1, t("auth.validation.emailRequired"))
-    .email(t("auth.validation.emailInvalid")),
-});
-
-type MagicLinkFormData = z.infer<typeof magicLinkSchema>;
 
 interface MagicLinkFormProps {
   returnTo?: string | null;
+  /**
+   * Mode form — default: "login".
+   *
+   * - "login"   : derive shouldCreateUser dari appConfig.auth.magicLinkMode
+   * - "register": force shouldCreateUser = true (user baru)
+   *
+   * Dipake di register page untuk memastikan user bisa signup via magic link
+   * meskipun config global-nya "login-only".
+   */
+  mode?: "login" | "register";
 }
 
-export function MagicLinkForm({ returnTo }: MagicLinkFormProps) {
+export function MagicLinkForm({ returnTo, mode = "login" }: MagicLinkFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -47,6 +49,11 @@ export function MagicLinkForm({ returnTo }: MagicLinkFormProps) {
     resolver: zodResolver(magicLinkSchema),
     defaultValues: { email: "" },
   });
+
+  // Derive shouldCreateUser dari config + mode override
+  const shouldCreateUser =
+    mode === "register" ||
+    appConfig.auth.magicLinkMode === "login-or-signup";
 
   const onSubmit = async (data: MagicLinkFormData) => {
     setError(null);
@@ -67,9 +74,7 @@ export function MagicLinkForm({ returnTo }: MagicLinkFormProps) {
         email: data.email,
         options: {
           emailRedirectTo: callbackUrl.toString(),
-          // shouldCreateUser: false — user harus sudah terdaftar
-          // Kalau mau open-register, hapus line ini.
-          shouldCreateUser: false,
+          shouldCreateUser,
         },
       });
 
@@ -78,6 +83,10 @@ export function MagicLinkForm({ returnTo }: MagicLinkFormProps) {
         setIsLoading(false);
         return;
       }
+
+      // Note: "magic link sent" event TIDAK di-log via activity_logs karena
+      // session belum ada (anonymous). Supabase audit log sudah track ini.
+      // "user.login" akan di-log di callback route setelah user klik link.
 
       setSent(true);
       setIsLoading(false);

@@ -2,11 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/core/lib/supabase/server";
 import { LoginForm } from "@/core/auth";
 import { fetchActiveProfile } from "@/core/auth/services";
-import {
-  appConfig,
-  brandingConfig,
-  resolvePostLoginRedirect,
-} from "@/config";
+import { brandingConfig, resolvePostLoginRedirect } from "@/config";
 import { t } from "@/core/i18n";
 import type { Metadata } from "next";
 
@@ -22,6 +18,7 @@ interface LoginPageProps {
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const returnTo = params.returnTo ?? null;
+  const error = params.error ?? null;
 
   const supabase = await createClient();
 
@@ -29,7 +26,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Sudah authenticated → role-aware redirect (respect returnTo kalau ada)
+  // Sudah authenticated → role-aware redirect (respect returnTo kalau ada).
+  // CATATAN: kalau ada `error` query (mis. account_deactivated) TAPI session
+  // masih ada, bersiin session dulu di callback route — jadi seharusnya gak
+  // sampe sini dengan both session + error.
   if (user) {
     const { profile } = await fetchActiveProfile(supabase, user.id);
     const dest = resolvePostLoginRedirect(
@@ -39,5 +39,5 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     redirect(dest);
   }
 
-  return <LoginForm returnTo={returnTo} />;
+  return <LoginForm returnTo={returnTo} error={error} />;
 }

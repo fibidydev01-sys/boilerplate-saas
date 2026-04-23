@@ -8,22 +8,14 @@
  *   - Fire-and-forget style: gagal log gak boleh break user flow.
  *   - Action key pakai dot-notation: "user.login", "profile.update".
  *
- * Usage client:
- *   import { createClient } from "@/core/lib/supabase/client";
- *   import { logActivity } from "@/core/auth/services";
+ * RLS note:
+ *   Policy `activity_logs_authenticated_insert` require authenticated
+ *   session. Anonymous events (failed login, magic link request dari
+ *   public form, dll) TIDAK bisa di-log via client — Supabase Auth punya
+ *   audit log sendiri untuk itu di `auth.audit_log_entries`.
  *
- *   const supabase = createClient();
- *   await logActivity(supabase, {
- *     action: "profile.update",
- *     resourceType: "user",
- *     resourceId: user.id,
- *     metadata: { fields: ["full_name"] },
- *   });
- *
- * Usage server (Route Handler):
- *   const ip = request.headers.get("x-forwarded-for") ?? undefined;
- *   const ua = request.headers.get("user-agent") ?? undefined;
- *   await logActivity(supabase, { action: "user.login", ipAddress: ip, userAgent: ua });
+ * IMPORTANT: Ini SATU-SATUNYA source of truth untuk ActivityAction enum.
+ * Jangan bikin duplikat di module lain.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -56,10 +48,6 @@ export interface LogActivityResult {
 
 /**
  * Insert activity log. Never throws — error returned via result.
- *
- * @returns {logged: true} kalau sukses insert, {logged: false} kalau gagal.
- *          Error detail ada di `result.error` untuk debugging, tapi caller
- *          biasanya tidak perlu act on it.
  */
 export async function logActivity(
   supabase: Client,
@@ -90,8 +78,6 @@ export async function logActivity(
       .single();
 
     if (error) {
-      // Log to console but don't throw — activity log failure must not
-      // break the calling flow.
       if (process.env.NODE_ENV === "development") {
         console.warn("[logActivity] insert failed:", error.message);
       }
@@ -126,7 +112,6 @@ export interface ListActivityOptions {
   resourceId?: string;
   limit?: number;
   offset?: number;
-  /** Filter by date range (inclusive start, exclusive end). */
   from?: Date;
   to?: Date;
 }
@@ -137,11 +122,6 @@ export interface ListActivityResult {
   error: Error | null;
 }
 
-/**
- * Paginated list — untuk admin page. RLS auto-filter:
- *   - Regular user: cuma log-nya sendiri
- *   - Admin (policy `activity_logs_admin_select_all`): semua log
- */
 export async function listActivity(
   supabase: Client,
   options: ListActivityOptions = {}
@@ -193,19 +173,22 @@ export async function listActivity(
 }
 
 // --------------------------------------------------------------------
-// Common action key constants (convention, not enforced)
+// Action key constants (convention)
 // --------------------------------------------------------------------
 
 /**
- * Convention untuk action keys. Tidak di-enforce di type — tambah sesuai
- * kebutuhan modul. Format: "<domain>.<verb>" atau "<domain>.<subdomain>.<verb>".
+ * Convention untuk action keys. Format: "<domain>.<verb>" atau
+ * "<domain>.<subdomain>.<verb>". Tambah sesuai kebutuhan module.
+ *
+ * IMPORTANT: Semua action key HARUS didefinisi di sini. Jangan bikin
+ * enum terpisah di module lain.
  */
 export const ActivityAction = {
-  // User lifecycle
+  // User lifecycle (authenticated events only — anon handled by Supabase audit)
   UserLogin: "user.login",
   UserLogout: "user.logout",
   UserSignup: "user.signup",
-  UserFailedLogin: "user.failed_login",
+  UserPasswordResetCompleted: "user.password_reset_completed",
 
   // Profile
   ProfileUpdate: "profile.update",
@@ -217,6 +200,25 @@ export const ActivityAction = {
   AdminUserActivate: "admin.user.activate",
   AdminUserRoleChange: "admin.user.role_change",
   AdminUserDelete: "admin.user.delete",
+
+  // Commerce — Credentials (Phase 1)
+  CommerceCredentialConnected: "commerce.credential.connected",
+  CommerceCredentialDisconnected: "commerce.credential.disconnected",
+
+  // Commerce — Webhooks (Phase 2)
+  CommerceWebhookProvisioned: "commerce.webhook.provisioned",
+  CommerceWebhookDeleted: "commerce.webhook.deleted",
+
+  // Commerce — Subscription actions (Phase 2)
+  CommerceSubscriptionPaused: "commerce.subscription.paused",
+  CommerceSubscriptionResumed: "commerce.subscription.resumed",
+  CommerceSubscriptionCancelled: "commerce.subscription.cancelled",
+
+  // Commerce — Checkout (Phase 2)
+  CommerceCheckoutCreated: "commerce.checkout.created",
+
+  // Commerce — Order/Sync (Phase 2)
+  CommerceOrderSynced: "commerce.order.synced",
 } as const;
 
 export type ActivityActionKey = (typeof ActivityAction)[keyof typeof ActivityAction];

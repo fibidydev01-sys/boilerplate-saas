@@ -1,7 +1,11 @@
 import { create } from "zustand";
 import { createClient } from "@/core/lib/supabase/client";
 import { isAdminRole } from "@/config";
-import { fetchActiveProfile } from "@/core/auth/services";
+import {
+  fetchActiveProfile,
+  logActivity,
+  ActivityAction,
+} from "@/core/auth/services";
 import type { UserProfile } from "@/core/types";
 
 interface AuthState {
@@ -54,7 +58,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           return;
         }
 
-        // Delegate DB call ke profile service — store cuma handle state.
         const { profile, error } = await fetchActiveProfile(
           supabase,
           session.user.id
@@ -85,7 +88,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     })();
 
-    // Set promise SEBELUM async resolve — fix race condition
     set({ fetchPromise: promise });
     return promise;
   },
@@ -93,7 +95,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     const supabase = createClient();
 
-    // Clear state dulu, baru signOut
+    // Log activity BEFORE signOut — session must be valid for RLS.
+    // logActivity never throws (returns result object), so safe to await.
+    await logActivity(supabase, {
+      action: ActivityAction.UserLogout,
+    });
+
+    // Clear state first, then signOut
     set({ ...initialState });
 
     try {

@@ -21,7 +21,7 @@ export const appConfig = {
     admin: { enabled: true, path: "/admin" },
     saas: { enabled: false, path: "/workspace" },
     landing: { enabled: false, path: "/" },
-    commerce: { enabled: false, path: "/shop" },
+    commerce: { enabled: true, path: "/products" },
     blog: { enabled: false, path: "/blog" },
     project: { enabled: false, path: "/projects" },
     forum: { enabled: false, path: "/forum" },
@@ -31,21 +31,46 @@ export const appConfig = {
   /**
    * Auth configuration.
    *
-   * providers      → auth method yang diaktifkan. LoginForm render tombol
-   *                   sesuai list ini. Urutan di array = urutan render.
-   * roles          → semua role yang valid di sistem (UserRole type).
-   * adminRoles     → role yang punya akses admin panel (legacy compat;
-   *                   permission sebenernya di permissions.config.ts).
-   * defaultRole    → role otomatis saat user baru register.
-   * postLoginRedirect  → fallback global kalau returnTo kosong & role
+   * passwordProviders → credential-based login (email/password + magic link).
+   *                      Urutan di array = urutan render di form.
+   *                      Valid values: "email" | "magic-link".
+   *
+   * oauthProviders    → OAuth providers. Register icon + label via
+   *                      oauth-config.tsx di src/core/auth/components/providers/.
+   *                      Untuk nambah GitHub/Apple: tambah di array ini +
+   *                      register di oauth-config.tsx.
+   *                      Valid values saat ini: "google".
+   *
+   * roles             → semua role valid di sistem (UserRole type).
+   * adminRoles        → role yang punya akses admin panel (legacy compat;
+   *                      permission sebenernya di permissions.config.ts).
+   * defaultRole       → role otomatis saat user baru register.
+   * postLoginRedirect → fallback global kalau returnTo kosong & role
    *                      tidak punya override di roleRedirects.
-   * roleRedirects  → per-role landing page setelah login. Admin-role →
-   *                   /admin, role lain fallback ke postLoginRedirect.
-   *                   Kalau ada returnTo param → returnTo menang.
+   * roleRedirects     → per-role landing page setelah login. Admin-role →
+   *                      /admin, role lain fallback ke postLoginRedirect.
+   *                      Kalau ada returnTo param → returnTo menang.
    * postLogoutRedirect → kemana redirect setelah logout (juga = login page).
+   *
+   * allowPublicSignup:
+   *   PaaS mode = true (user bisa daftar sendiri via /register).
+   *   Internal mode = false (cuma admin yang bisa provision user).
+   *
+   * requireEmailVerification:
+   *   IMPORTANT: Setting ini harus MATCH dengan Supabase dashboard
+   *   Authentication → Providers → Email → "Confirm email".
+   *
+   * magicLinkMode:
+   *   - "login-or-signup" (default): email belum ada → auto create user
+   *   - "login-only": email harus udah ada, else error
    */
   auth: {
-    providers: ["email", "google", "magic-link"] as const,
+    // Credential-based providers (password + magic link)
+    passwordProviders: ["email", "magic-link"] as const,
+
+    // OAuth providers — register icon + label di oauth-config.tsx
+    oauthProviders: ["google"] as const,
+
     roles: ["super_admin", "admin", "editor", "viewer", "user"] as const,
     adminRoles: ["super_admin", "admin"] as const,
     defaultRole: "user" as const,
@@ -55,26 +80,28 @@ export const appConfig = {
       super_admin: "/admin",
       admin: "/admin",
     } as Partial<Record<string, string>>,
+
+    // --- PaaS additions ---
+    allowPublicSignup: true,
+    requireEmailVerification: false,
+    magicLinkMode: "login-or-signup" as "login-or-signup" | "login-only",
   },
 
   /**
-   * Payment (Stripe) configuration.
+   * Payment configuration.
    *
    * enabled  → master switch, kalau false semua payment flow di-skip
    * mode     → "subscription" | "one-time" | "both"
-   * provider → untuk sekarang cuma "stripe"
+   * provider → Phase 1: "lemonsqueezy". Phase 3+: bisa tambah stripe, paddle.
    */
   payment: {
     enabled: false,
     mode: "subscription" as "subscription" | "one-time" | "both",
-    provider: "stripe" as const,
+    provider: "lemonsqueezy" as const,
   },
 
   /**
    * Locale / i18n.
-   *
-   * default    → bahasa default aplikasi
-   * available  → daftar bahasa yang di-support (harus ada file JSON-nya)
    */
   locale: {
     default: "id",
@@ -85,17 +112,15 @@ export const appConfig = {
 export type AppConfig = typeof appConfig;
 export type UserRole = (typeof appConfig.auth.roles)[number];
 export type AdminRole = (typeof appConfig.auth.adminRoles)[number];
-export type AuthProvider = (typeof appConfig.auth.providers)[number];
+export type PasswordProvider = (typeof appConfig.auth.passwordProviders)[number];
+export type OAuthProvider = (typeof appConfig.auth.oauthProviders)[number];
 export type Locale = (typeof appConfig.locale.available)[number];
 export type ModuleName = keyof typeof appConfig.modules;
 export type PaymentMode = typeof appConfig.payment.mode;
 
 /**
  * Helper: cek apakah role termasuk admin.
- *
- * LEGACY COMPAT: ini equivalent ke `can(role, "admin:access")` di sistem
- * permission baru. Tetap di-export karena masih dipake di beberapa tempat
- * (sidebar, mobile-nav). New code: pakai `can()` dari @/core/auth/lib.
+ * LEGACY COMPAT: equivalent ke `can(role, "admin:access")`. New code: pake `can()`.
  */
 export function isAdminRole(role: string): boolean {
   return (appConfig.auth.adminRoles as readonly string[]).includes(role);
@@ -124,9 +149,6 @@ export function getEnabledModulePaths(): string[] {
  *   1. returnTo (kalau valid path internal)
  *   2. roleRedirects[role] (admin → /admin, dst)
  *   3. postLoginRedirect (global fallback)
- *
- * returnTo di-validate: harus relative path ("/...") & bukan login/logout
- * (biar gak loop). External URL di-reject untuk cegah open-redirect.
  */
 export function resolvePostLoginRedirect(
   role: string | undefined,

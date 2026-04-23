@@ -16,6 +16,10 @@ export type ActivityLogInsert = InsertDto<"activity_logs">;
 export type StripeEvent = Tables<"stripe_events">;
 export type StripeEventInsert = InsertDto<"stripe_events">;
 
+export type CommerceCredential = Tables<"commerce_credentials">;
+export type CommerceCredentialInsert = InsertDto<"commerce_credentials">;
+export type CommerceCredentialUpdate = UpdateDto<"commerce_credentials">;
+
 // --------------------------------------------------------------------
 // Module metadata typing (opt-in)
 // --------------------------------------------------------------------
@@ -29,9 +33,6 @@ export type StripeEventInsert = InsertDto<"stripe_events">;
  *       commerce?: { shipping_addresses: Address[] };
  *     }
  *   }
- *
- * Core code cuma pegang `UserProfileMetadata` — empty by default.
- * Per-module typing tambah key sendiri via declaration merging.
  */
 export interface UserProfileMetadata {
   // Empty — modules extend via declaration merging
@@ -39,9 +40,6 @@ export interface UserProfileMetadata {
 
 /**
  * Helper untuk akses metadata dengan type safety.
- *
- * @example
- *   const commerce = getProfileMetadata(user, "commerce");
  */
 export function getProfileMetadata<K extends keyof UserProfileMetadata>(
   profile: UserProfile,

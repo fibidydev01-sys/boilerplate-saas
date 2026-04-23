@@ -11,12 +11,10 @@
  *   import { t } from "@/core/i18n";
  *   t("common.loading")
  *   t("dashboard.welcomeMessage", { appName: "Acme" })
- *   t("common.loading", undefined, "en")
  *
- * Kenapa gak pake next-intl / react-i18next?
- * - Boilerplate ini target: ringan, zero config, config-driven.
- * - Nanti kalau butuh locale switcher runtime + ICU format kompleks,
- *   baru migrate ke next-intl. API t() di sini udah kompatibel.
+ *   // Client component pattern (juga support):
+ *   import { useTranslation } from "@/core/i18n";
+ *   const { t } = useTranslation();
  */
 
 import id from "./locales/id.json";
@@ -30,7 +28,6 @@ type Dict = typeof id;
 
 /**
  * Recursive type yang generate semua dotted key dari nested JSON.
- * Contoh: "common.loading" | "auth.emailLabel" | "auth.validation.emailRequired"
  */
 type NestedKey<T, Prefix extends string = ""> = {
   [K in keyof T & string]: T[K] extends string
@@ -42,10 +39,6 @@ type NestedKey<T, Prefix extends string = ""> = {
 
 export type TranslationKey = NestedKey<Dict>;
 
-/**
- * Resolve dotted path jadi string value dari object.
- * Kalau gak ketemu atau bukan string, return undefined.
- */
 function resolveKey(dict: unknown, path: string): string | undefined {
   const value = path.split(".").reduce<unknown>((acc, segment) => {
     if (acc && typeof acc === "object" && segment in acc) {
@@ -57,9 +50,6 @@ function resolveKey(dict: unknown, path: string): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-/**
- * Replace {param} placeholder di string dengan value dari params object.
- */
 function interpolate(
   template: string,
   params?: Record<string, string | number>
@@ -75,13 +65,11 @@ function interpolate(
 /**
  * Main translation function.
  *
- * @param key       Dotted path ke translation (type-safe).
- * @param params    Optional — untuk replace {placeholder} di string.
- * @param locale    Optional — override default locale dari appConfig.
- * @returns         Translated string, atau key itu sendiri kalau gak ketemu.
+ * Accept `string` juga (bukan cuma TranslationKey) untuk graceful fallback.
+ * Kalau key gak valid, return key itu sendiri + warn di dev.
  */
 export function t(
-  key: TranslationKey,
+  key: TranslationKey | string,
   params?: Record<string, string | number>,
   locale?: Locale
 ): string {
@@ -90,7 +78,6 @@ export function t(
 
   const value = resolveKey(dict, key);
 
-  // Fallback ke id.json kalau locale aktif gak punya key-nya
   if (value === undefined && activeLocale !== "id") {
     const fallback = resolveKey(locales.id, key);
     if (fallback !== undefined) return interpolate(fallback, params);
@@ -106,16 +93,28 @@ export function t(
   return interpolate(value, params);
 }
 
-/**
- * Get current default locale dari config.
- */
 export function getCurrentLocale(): Locale {
   return appConfig.locale.default as Locale;
 }
 
-/**
- * Get semua locale yang available.
- */
 export function getAvailableLocales(): readonly Locale[] {
   return appConfig.locale.available;
+}
+
+/**
+ * Hook untuk client components. Return `t` function + current locale.
+ *
+ * Kenapa hook? Biar konsisten dengan pattern React (useTranslation dari
+ * react-i18next). Internal cuma re-export `t` — gak ada state atau
+ * subscription. Locale diambil dari config yang locked di module load.
+ */
+export function useTranslation(locale?: Locale) {
+  const activeLocale = locale ?? getCurrentLocale();
+  return {
+    t: (
+      key: TranslationKey | string,
+      params?: Record<string, string | number>
+    ) => t(key, params, activeLocale),
+    locale: activeLocale,
+  };
 }

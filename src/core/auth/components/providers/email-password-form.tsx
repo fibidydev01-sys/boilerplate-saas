@@ -26,7 +26,11 @@ import {
 } from "lucide-react";
 import { createClient } from "@/core/lib/supabase/client";
 import { useAuthStore } from "@/core/auth/store";
-import { verifyProfile } from "@/core/auth/services";
+import {
+  verifyProfile,
+  logActivity,
+  ActivityAction,
+} from "@/core/auth/services";
 import { loginSchema, type LoginFormData } from "@/core/lib/validators";
 import { resolvePostLoginRedirect } from "@/config";
 import { t } from "@/core/i18n";
@@ -94,6 +98,12 @@ export function EmailPasswordForm({ returnTo }: EmailPasswordFormProps) {
         setIsLoading(false);
         return;
       }
+
+      // Log activity — fire-and-forget, don't block redirect
+      void logActivity(supabase, {
+        action: ActivityAction.UserLogin,
+        metadata: { provider: "email" },
+      });
 
       // Reset store → trigger fresh fetch di dashboard layout
       useAuthStore.setState({

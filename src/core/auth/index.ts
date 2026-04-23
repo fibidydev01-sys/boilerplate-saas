@@ -2,7 +2,7 @@
  * @/core/auth — Auth barrel.
  *
  * Agregasi dari:
- *   - components/  (LoginForm, LogoutButton, provider sub-components)
+ *   - components/  (LoginForm, RegisterForm, ForgotPasswordForm, ResetPasswordForm, LogoutButton, provider sub-components)
  *   - hooks/       (useAuth, usePermission, usePermissions)
  *   - lib/         (can, canAll, canAny, canAccessAdmin — pure)
  *   - services/    (fetchActiveProfile, verifyProfile)
@@ -13,8 +13,12 @@
 // Components
 export {
   LoginForm,
+  RegisterForm,
+  ForgotPasswordForm,
+  ResetPasswordForm,
   LogoutButton,
   EmailPasswordForm,
+  EmailPasswordRegisterForm,
   OAuthButton,
   GoogleIcon,
   MagicLinkForm,

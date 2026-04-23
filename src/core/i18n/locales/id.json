@@ -20,18 +20,29 @@
     "error": "Terjadi kesalahan",
     "retry": "Coba lagi",
     "active": "Aktif",
-    "inactive": "Nonaktif"
+    "inactive": "Nonaktif",
+    "disconnect": "Putuskan",
+    "connect": "Hubungkan",
+    "connecting": "Menghubungkan...",
+    "disconnecting": "Memutuskan...",
+    "connected": "Terhubung",
+    "notConnected": "Belum terhubung"
   },
   "auth": {
     "emailLabel": "Email",
     "passwordLabel": "Password",
+    "confirmPasswordLabel": "Konfirmasi Password",
+    "fullNameLabel": "Nama Lengkap",
     "emailPlaceholder": "email@example.com",
     "passwordPlaceholder": "Masukkan password",
+    "confirmPasswordPlaceholder": "Ulangi password",
+    "fullNamePlaceholder": "John Doe",
     "forgotPassword": "Lupa password?",
+    "forgotPasswordLink": "Lupa password?",
     "contactAdmin": "Hubungi Administrator",
     "invalidCredentials": "Email atau password salah",
     "loginFailed": "Gagal login. Silakan coba lagi.",
-    "accountNotRegistered": "Akun tidak terdaftar dalam sistem. Hubungi administrator.",
+    "accountNotRegistered": "Akun tidak terdaftar dalam sistem.",
     "accountDeactivated": "Akun Anda telah dinonaktifkan. Hubungi administrator.",
     "genericError": "Terjadi kesalahan. Silakan coba lagi.",
     "logoutConfirmTitle": "Keluar dari Aplikasi",
@@ -39,6 +50,8 @@
     "logoutConfirmButton": "Keluar",
     "signInWithEmail": "Masuk dengan Email",
     "signInWithGoogle": "Masuk dengan Google",
+    "signUpWithEmail": "Daftar dengan Email",
+    "signUpWithGoogle": "Daftar dengan Google",
     "orContinueWith": "atau lanjut dengan",
     "tabPassword": "Password",
     "tabMagicLink": "Magic Link",
@@ -47,11 +60,42 @@
     "magicLinkSent": "Link masuk telah dikirim ke email Anda. Periksa inbox dan klik link untuk melanjutkan.",
     "callbackError": "Gagal memproses autentikasi. Silakan coba lagi.",
     "sessionExpired": "Sesi Anda telah berakhir. Silakan masuk kembali.",
+    "registerTitle": "Buat Akun Baru",
+    "registerSubtitle": "Daftar untuk mulai menggunakan aplikasi",
+    "registerButton": "Daftar",
+    "registering": "Mendaftar...",
+    "registerSuccess": "Pendaftaran berhasil! Anda akan dialihkan...",
+    "registerSuccessVerify": "Pendaftaran berhasil! Silakan cek email untuk verifikasi akun.",
+    "alreadyHaveAccount": "Sudah punya akun?",
+    "dontHaveAccount": "Belum punya akun?",
+    "signInHere": "Masuk di sini",
+    "signUpHere": "Daftar di sini",
+    "emailAlreadyRegistered": "Email sudah terdaftar. Silakan masuk.",
+    "weakPassword": "Password terlalu lemah. Gunakan minimal 8 karakter.",
+    "forgotPasswordTitle": "Lupa Password",
+    "forgotPasswordSubtitle": "Masukkan email Anda. Kami akan kirim link untuk reset password.",
+    "forgotPasswordButton": "Kirim Link Reset",
+    "forgotPasswordSending": "Mengirim...",
+    "forgotPasswordSent": "Jika email terdaftar, link reset password sudah dikirim. Silakan cek inbox Anda.",
+    "backToLogin": "Kembali ke halaman login",
+    "resetPasswordTitle": "Reset Password",
+    "resetPasswordSubtitle": "Masukkan password baru Anda",
+    "resetPasswordButton": "Simpan Password Baru",
+    "resetPasswordUpdating": "Menyimpan...",
+    "resetPasswordSuccess": "Password berhasil diubah. Mengalihkan ke dashboard...",
+    "resetPasswordInvalidSession": "Link reset tidak valid atau sudah kadaluarsa. Silakan minta link baru.",
+    "publicSignupDisabled": "Pendaftaran publik sedang dinonaktifkan. Hubungi administrator.",
     "validation": {
       "emailRequired": "Email wajib diisi",
       "emailInvalid": "Format email tidak valid",
       "passwordRequired": "Password wajib diisi",
-      "passwordMinLength": "Password minimal 6 karakter"
+      "passwordMinLength": "Password minimal 6 karakter",
+      "passwordMinLengthRegister": "Password minimal 8 karakter",
+      "confirmPasswordRequired": "Konfirmasi password wajib diisi",
+      "passwordMismatch": "Password tidak cocok",
+      "fullNameRequired": "Nama lengkap wajib diisi",
+      "fullNameMinLength": "Nama minimal 2 karakter",
+      "fullNameMaxLength": "Nama maksimal 100 karakter"
     }
   },
   "dashboard": {
@@ -95,7 +139,10 @@
     "pageTitle": "Pengaturan",
     "pageSubtitle": "Konfigurasi dan preferensi sistem",
     "placeholderTitle": "Halaman Pengaturan",
-    "placeholderMessage": "Halaman ini sedang dalam pengembangan. Pengaturan sistem akan tersedia di sini."
+    "placeholderMessage": "Halaman ini sedang dalam pengembangan. Pengaturan sistem akan tersedia di sini.",
+    "integrationsTitle": "Integrasi",
+    "integrationsSubtitle": "Hubungkan layanan pihak ketiga ke akun Anda",
+    "integrationsLink": "Integrasi"
   },
   "admin": {
     "pageTitle": "Panel Admin",
@@ -121,7 +168,11 @@
     "settings": "Pengaturan",
     "admin": "Admin",
     "menu": "Menu",
-    "administration": "Administrasi"
+    "administration": "Administrasi",
+    "products": "Produk",
+    "orders": "Pesanan",
+    "subscriptions": "Langganan",
+    "customers": "Pelanggan"
   },
   "userMenu": {
     "myProfile": "Profil Saya"
@@ -136,5 +187,182 @@
   "offline": {
     "disconnected": "Tidak ada koneksi internet",
     "reconnected": "Koneksi internet tersambung kembali"
+  },
+  "commerce": {
+    "pageTitle": "Produk",
+    "pageSubtitle": "Katalog produk dari toko Lemon Squeezy Anda",
+    "providerName": "Lemon Squeezy",
+    "connectTitle": "Hubungkan Lemon Squeezy",
+    "connectSubtitle": "Masukkan API key dari Lemon Squeezy untuk mulai sinkronisasi produk",
+    "apiKeyLabel": "API Key",
+    "apiKeyPlaceholder": "Masukkan API key Lemon Squeezy Anda",
+    "apiKeyHint": "Dapatkan API key di Dashboard Lemon Squeezy → Settings → API",
+    "testModeLabel": "Mode Test",
+    "testModeDescription": "Aktifkan untuk menggunakan test API key",
+    "connectButton": "Hubungkan Akun",
+    "connectingButton": "Menghubungkan...",
+    "disconnectButton": "Putuskan Koneksi",
+    "disconnectConfirmTitle": "Putuskan Koneksi?",
+    "disconnectConfirmDescription": "Setelah diputuskan, data produk tidak akan bisa diakses sampai Anda menghubungkan kembali. Kredensial akan dihapus permanen.",
+    "statusConnectedTitle": "Terhubung ke {storeName}",
+    "statusConnectedSubtitle": "Kredensial tersimpan dan terverifikasi",
+    "statusKeyLabel": "API Key",
+    "statusModeLabel": "Mode",
+    "statusModeTest": "Test",
+    "statusModeLive": "Live",
+    "statusLastVerified": "Terakhir diverifikasi {time}",
+    "connectSuccess": "Berhasil terhubung ke {storeName}!",
+    "disconnectSuccess": "Koneksi berhasil diputuskan.",
+    "errorInvalidCredentials": "API key tidak valid. Periksa kembali dan coba lagi.",
+    "errorRateLimited": "Terlalu banyak percobaan. Coba lagi beberapa saat.",
+    "errorForbidden": "API key tidak punya akses yang cukup.",
+    "errorNetwork": "Gagal menghubungi server Lemon Squeezy. Periksa koneksi internet Anda.",
+    "errorApiGeneric": "Terjadi kesalahan saat memanggil Lemon Squeezy API.",
+    "errorSaveFailed": "Gagal menyimpan kredensial.",
+    "errorDecryptFailed": "Gagal membaca kredensial. Hubungkan ulang.",
+    "errorNotConnected": "Anda belum menghubungkan akun Lemon Squeezy.",
+    "productsEmptyTitle": "Belum Ada Produk",
+    "productsEmptySubtitle": "Tidak ditemukan produk di toko Anda. Buat produk di Lemon Squeezy dashboard.",
+    "productsNotConnectedTitle": "Lemon Squeezy Belum Terhubung",
+    "productsNotConnectedSubtitle": "Hubungkan akun Anda terlebih dahulu untuk melihat produk.",
+    "productsConnectCta": "Hubungkan Sekarang",
+    "productsLoading": "Memuat produk...",
+    "productsRefresh": "Muat Ulang",
+    "productVariantsLabel": "{count} varian",
+    "productPriceFrom": "Mulai dari",
+    "productStatusDraft": "Draft",
+    "productStatusPublished": "Tersedia",
+    "validation": {
+      "apiKeyRequired": "API key wajib diisi",
+      "apiKeyTooShort": "API key terlalu pendek",
+      "apiKeyTooLong": "API key terlalu panjang"
+    },
+    "common": {
+      "notConnected": "Lemon Squeezy belum terhubung. Hubungkan akun Anda di halaman pengaturan integrasi.",
+      "syncError": "Gagal sinkronisasi data",
+      "loading": "Memuat data..."
+    },
+    "orders": {
+      "pageTitle": "Pesanan",
+      "pageDescription": "Daftar pesanan dari Lemon Squeezy",
+      "empty": "Belum ada pesanan.",
+      "syncFirst": "Sinkronisasi pertama",
+      "sync": "Sinkronisasi",
+      "syncing": "Sinkronisasi...",
+      "filterEmail": "Filter email pelanggan",
+      "showing": "Menampilkan {count} dari {total} pesanan",
+      "endsAt": "Berakhir {date}",
+      "columns": {
+        "orderNumber": "No. Pesanan",
+        "customer": "Pelanggan",
+        "status": "Status",
+        "total": "Total",
+        "date": "Tanggal"
+      },
+      "status": {
+        "all": "Semua status",
+        "paid": "Lunas",
+        "pending": "Menunggu",
+        "refunded": "Direfund",
+        "partial_refund": "Refund sebagian",
+        "void": "Dibatalkan"
+      }
+    },
+    "subscriptions": {
+      "pageTitle": "Langganan",
+      "pageDescription": "Kelola langganan aktif dari Lemon Squeezy",
+      "empty": "Belum ada langganan.",
+      "syncFirst": "Sinkronisasi pertama",
+      "sync": "Sinkronisasi",
+      "syncing": "Sinkronisasi...",
+      "filterEmail": "Filter email pelanggan",
+      "showing": "Menampilkan {count} dari {total} langganan",
+      "endsAt": "Berakhir {date}",
+      "columns": {
+        "customer": "Pelanggan",
+        "product": "Produk",
+        "status": "Status",
+        "renewsAt": "Perpanjang"
+      },
+      "status": {
+        "all": "Semua status",
+        "active": "Aktif",
+        "on_trial": "Masa Trial",
+        "paused": "Dijeda",
+        "past_due": "Lewat Jatuh Tempo",
+        "unpaid": "Belum Bayar",
+        "cancelled": "Dibatalkan",
+        "expired": "Kadaluarsa"
+      },
+      "actions": {
+        "pause": "Jeda langganan",
+        "resume": "Lanjutkan langganan",
+        "cancel": "Batalkan langganan",
+        "none": "Tidak ada aksi tersedia",
+        "actionFailed": "Aksi gagal"
+      },
+      "confirmPause": {
+        "title": "Jeda langganan ini?",
+        "description": "Pelanggan tidak akan ditagih sampai langganan dilanjutkan. Akses akan dihentikan selama jeda."
+      },
+      "confirmResume": {
+        "title": "Lanjutkan langganan ini?",
+        "description": "Pelanggan akan mulai ditagih lagi dan akses akan dipulihkan."
+      },
+      "confirmCancel": {
+        "title": "Batalkan langganan ini?",
+        "description": "Langganan akan dibatalkan tapi pelanggan tetap bisa akses sampai periode berakhir."
+      }
+    },
+    "customers": {
+      "pageTitle": "Pelanggan",
+      "pageDescription": "Daftar pelanggan dari Lemon Squeezy",
+      "empty": "Belum ada pelanggan.",
+      "syncFirst": "Sinkronisasi pertama",
+      "sync": "Sinkronisasi",
+      "syncing": "Sinkronisasi...",
+      "filterEmail": "Filter email pelanggan",
+      "showing": "Menampilkan {count} dari {total} pelanggan",
+      "columns": {
+        "name": "Nama",
+        "email": "Email",
+        "country": "Negara",
+        "mrr": "MRR",
+        "totalRevenue": "Total Revenue",
+        "joined": "Bergabung"
+      }
+    },
+    "webhooks": {
+      "pageTitle": "Webhook",
+      "pageDescription": "Konfigurasi webhook untuk menerima event real-time dari Lemon Squeezy",
+      "title": "Konfigurasi Webhook",
+      "notConnectedDescription": "Webhook belum dikonfigurasi. Generate URL dan secret untuk mulai menerima event dari Lemon Squeezy.",
+      "generate": "Generate Webhook",
+      "generating": "Membuat...",
+      "connectedTitle": "Webhook Aktif",
+      "urlLabel": "URL Webhook",
+      "urlHelp": "Salin URL ini dan daftarkan di Dashboard Lemon Squeezy → Settings → Webhooks",
+      "secretLabel": "Secret (masked)",
+      "secretHintHelp": "Secret sebenarnya tidak bisa ditampilkan lagi. Regenerate untuk membuat baru.",
+      "secretRevealWarningTitle": "Salin Secret Sekarang",
+      "secretRevealWarning": "Secret ini hanya ditampilkan sekali. Salin dan simpan di tempat aman. Setelah tutup halaman, secret tidak bisa dilihat lagi.",
+      "subscribedEvents": "Event Terdaftar",
+      "lastEvent": "Event Terakhir",
+      "noEventsYet": "Belum ada event",
+      "regenerate": "Generate Ulang",
+      "delete": "Hapus Webhook",
+      "confirmRegenerate": {
+        "title": "Generate ulang webhook?",
+        "description": "URL dan secret lama akan diganti. Anda harus update konfigurasi di Lemon Squeezy dashboard."
+      },
+      "confirmDelete": {
+        "title": "Hapus konfigurasi webhook?",
+        "description": "Event dari Lemon Squeezy tidak akan masuk lagi sampai webhook di-setup ulang."
+      }
+    },
+    "checkout": {
+      "buy": "Beli Sekarang",
+      "error": "Gagal membuat checkout: {error}"
+    }
   }
 }

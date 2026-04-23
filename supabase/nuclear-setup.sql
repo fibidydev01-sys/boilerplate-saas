@@ -1,31 +1,59 @@
 -- =====================================================================
---  NUCLEAR SETUP — Phase 1 Foundation (FULL RESET)
+--  NUCLEAR SETUP — Phase 0 + 1 + 2 (FULL RESET, ALL-IN-ONE)
 -- =====================================================================
+--
+--  File ini adalah SINGLE SOURCE OF TRUTH untuk schema database.
+--  Jalanin sekali, semua tabel + trigger + RLS + storage bucket ready.
+--
+--  Scope:
+--    SECTION A. AUTH FOUNDATION                  (Phase 0 + 1)
+--      - user_profiles, activity_logs
+--      - Triggers: handle_new_user (OAuth-aware), handle_updated_at
+--      - Helper: is_admin()
+--      - RLS policies
+--      - Storage bucket: avatars
+--
+--    SECTION B. COMMERCE — PHASE 1              (Credentials)
+--      - commerce_credentials (LS API keys, encrypted)
+--
+--    SECTION C. COMMERCE — PHASE 2              (CRUD wrapper)
+--      - commerce_webhook_configs   (per-user webhook URL + secret)
+--      - commerce_webhook_events    (idempotent event log)
+--      - commerce_orders            (synced from LS)
+--      - commerce_subscriptions     (synced from LS)
+--      - commerce_customers         (synced from LS)
+--
+--    SECTION D. BACKFILL & SANITY CHECK
+--
+-- ---------------------------------------------------------------------
+--  FILOSOFI:
+--    Phase 2 = thin wrapper ke Lemon Squeezy.
+--    Semua engine (analytics, receipt, customer portal) delegasi ke LS.
+--    Tabel commerce_* cuma buat CRUD display + sync state lewat webhook.
+--
+-- ---------------------------------------------------------------------
 --  ⚠️  PERINGATAN:
---  File ini akan MENGHAPUS dan MEMBUAT ULANG semua tabel berikut:
---    - public.user_profiles
---    - public.activity_logs
---    - public.stripe_events
---    - storage bucket "avatars" (beserta semua policy-nya)
+--  File ini MENGHAPUS dan MEMBUAT ULANG semua tabel public.commerce_*
+--  dan public.user_profiles, public.activity_logs.
 --
---  Serta trigger auth.users → public.user_profiles.
+--  ⚠️  Yang DIPRESERVE (tidak dihapus):
+--      - auth.users (Supabase-managed)
+--      - storage.buckets: 'avatars' (config di-upsert aja)
+--      - storage.objects: file avatar yang udah di-upload user
 --
---  ⚠️  Auth users di auth.users TIDAK dihapus (Supabase-managed).
---      Tapi profile-nya di public.user_profiles akan dibackfill ulang.
+--  ⚠️  Profile di public.user_profiles akan di-backfill ulang dengan
+--      role default 'user' (elevate manual setelahnya).
 --
 --  JALANKAN HANYA DI:
 --    ✅ Fresh Supabase project
 --    ✅ Development environment (data bisa hilang)
 --    ❌ Production yang sudah punya data real
 --
---  Untuk production dengan data existing → pakai setup.sql (non-destructive).
---
 --  Cara pakai:
 --    1. Supabase Dashboard → SQL Editor → New query
---    2. Paste seluruh isi file ini
---    3. Run
---    4. Lihat pesan "NUCLEAR SETUP COMPLETE" di akhir output
---    5. Lanjut: node scripts/seed.js
+--    2. Paste seluruh isi file ini → Run
+--    3. Lihat pesan "NUCLEAR SETUP COMPLETE" di akhir output
+--    4. Lanjut: node scripts/seed.js
 --
 --  Setelah jalan, regenerate types:
 --    npx supabase gen types typescript --project-id <YOUR_ID> \
@@ -39,16 +67,23 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ---------------------------------------------------------------------
--- STEP 1: DROP EVERYTHING (reverse dependency order)
+-- STEP 1: DROP EVERYTHING (idempotent — aman walau table belum ada)
+-- ---------------------------------------------------------------------
+--  Catatan penting tentang `DROP ... IF EXISTS`:
+--
+--    DROP POLICY IF EXISTS "xxx" ON public.foo;
+--    DROP TRIGGER IF EXISTS yyy ON public.foo;
+--
+--  `IF EXISTS` hanya cek apakah POLICY/TRIGGER-nya ada, BUKAN cek
+--  apakah TABLE-nya ada. Kalau `public.foo` belum pernah dibuat,
+--  PostgreSQL throw `42P01 relation does not exist` — walau pakai
+--  IF EXISTS.
+--
+--  Solusi: drop TABLE-nya duluan dengan CASCADE. CASCADE otomatis
+--  drop semua policy/trigger/index/FK yang nempel di table itu.
 -- ---------------------------------------------------------------------
 
--- Triggers dulu sebelum functions — supaya tidak ada trigger
--- yang masih nempel ke function saat di-DROP
-DROP TRIGGER IF EXISTS on_auth_user_created     ON auth.users;
-DROP TRIGGER IF EXISTS on_user_profiles_updated ON public.user_profiles;
-
--- Storage policies (avatars bucket) — drop eksplisit per nama
--- Hindari DROP CASCADE pada storage objects yang bisa corrupt bucket state
+-- Storage policies (avatars_*) — drop via loop, aman karena storage.objects selalu ada
 DO $$
 DECLARE
   pol record;
@@ -64,41 +99,40 @@ BEGIN
   END LOOP;
 END $$;
 
--- Storage bucket data
-DELETE FROM storage.objects WHERE bucket_id = 'avatars';
-DELETE FROM storage.buckets WHERE id = 'avatars';
+-- Trigger di auth.users — auth.users selalu ada (Supabase-managed)
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 
--- RLS policies pada tabel — drop eksplisit SEBELUM tabel di-DROP
--- Ini mencegah ghost dependency di pg_catalog setelah CASCADE
-DROP POLICY IF EXISTS "user_profiles_self_select"       ON public.user_profiles;
-DROP POLICY IF EXISTS "user_profiles_admin_select_all"  ON public.user_profiles;
-DROP POLICY IF EXISTS "user_profiles_self_update"       ON public.user_profiles;
-DROP POLICY IF EXISTS "user_profiles_admin_update_all"  ON public.user_profiles;
-DROP POLICY IF EXISTS "user_profiles_admin_insert"      ON public.user_profiles;
-DROP POLICY IF EXISTS "user_profiles_admin_delete"      ON public.user_profiles;
+-- Drop public tables — CASCADE handle semua dependency
+-- Urutan drop: child tables dulu (commerce_*), baru parent (user_profiles)
+DROP TABLE IF EXISTS public.commerce_webhook_events   CASCADE;
+DROP TABLE IF EXISTS public.commerce_webhook_configs  CASCADE;
+DROP TABLE IF EXISTS public.commerce_orders           CASCADE;
+DROP TABLE IF EXISTS public.commerce_subscriptions    CASCADE;
+DROP TABLE IF EXISTS public.commerce_customers        CASCADE;
+DROP TABLE IF EXISTS public.commerce_credentials      CASCADE;
+DROP TABLE IF EXISTS public.activity_logs             CASCADE;
+DROP TABLE IF EXISTS public.user_profiles             CASCADE;
 
-DROP POLICY IF EXISTS "activity_logs_self_select"           ON public.activity_logs;
-DROP POLICY IF EXISTS "activity_logs_admin_select_all"      ON public.activity_logs;
-DROP POLICY IF EXISTS "activity_logs_authenticated_insert"  ON public.activity_logs;
+-- Legacy table dari versi sebelumnya — drop kalau masih ada
+DROP TABLE IF EXISTS public.stripe_events CASCADE;
 
-DROP POLICY IF EXISTS "stripe_events_admin_select" ON public.stripe_events;
+-- Functions — last, setelah semua caller-nya hilang
+DROP FUNCTION IF EXISTS public.handle_new_user()    CASCADE;
+DROP FUNCTION IF EXISTS public.handle_updated_at()  CASCADE;
+DROP FUNCTION IF EXISTS public.touch_updated_at()   CASCADE;
+DROP FUNCTION IF EXISTS public.set_updated_at()     CASCADE;
+DROP FUNCTION IF EXISTS public.is_admin(uuid)       CASCADE;
 
--- Functions — DROP tanpa CASCADE supaya tidak ada side-effect tersembunyi
--- Policy sudah di-drop eksplisit di atas, jadi tidak perlu CASCADE
-DROP FUNCTION IF EXISTS public.handle_new_user();
-DROP FUNCTION IF EXISTS public.handle_updated_at();
-DROP FUNCTION IF EXISTS public.is_admin(uuid);
 
--- Tables (CASCADE hanya untuk foreign key / index — bukan policy)
-DROP TABLE IF EXISTS public.stripe_events  CASCADE;
-DROP TABLE IF EXISTS public.activity_logs  CASCADE;
-DROP TABLE IF EXISTS public.user_profiles  CASCADE;
+-- =====================================================================
+-- ═══════════════════ SECTION A. AUTH FOUNDATION ═══════════════════
+-- =====================================================================
 
 -- ---------------------------------------------------------------------
--- STEP 2: CREATE user_profiles
+-- A.1  user_profiles — universal profile, module-agnostic
 -- ---------------------------------------------------------------------
---  Universal profile table. Generic — gak ada kolom spesifik module.
---  Extension per module pakai `metadata` jsonb (namespace by module).
+--  Generic — gak ada kolom spesifik module. Extension per module pakai
+--  `metadata` jsonb (namespace by module).
 --
 --  Role: string (bukan enum) supaya config-driven. Valid values
 --  match dengan `appConfig.auth.roles` di src/config/app.config.ts.
@@ -116,33 +150,29 @@ CREATE TABLE public.user_profiles (
   created_at   timestamptz NOT NULL DEFAULT now(),
   updated_at   timestamptz NOT NULL DEFAULT now(),
 
-  -- Role constraint — sync dengan appConfig.auth.roles
   CONSTRAINT user_profiles_role_check
     CHECK (role IN ('super_admin', 'admin', 'editor', 'viewer', 'user')),
 
-  -- Locale constraint — sync dengan appConfig.locale.available
   CONSTRAINT user_profiles_locale_check
     CHECK (locale IN ('id', 'en'))
 );
 
--- Indexes
-CREATE INDEX user_profiles_role_idx       ON public.user_profiles(role);
-CREATE INDEX user_profiles_is_active_idx  ON public.user_profiles(is_active);
-CREATE INDEX user_profiles_email_idx      ON public.user_profiles(email);
-CREATE INDEX user_profiles_metadata_idx   ON public.user_profiles USING gin (metadata);
+CREATE INDEX user_profiles_role_idx      ON public.user_profiles(role);
+CREATE INDEX user_profiles_is_active_idx ON public.user_profiles(is_active);
+CREATE INDEX user_profiles_email_idx     ON public.user_profiles(email);
+CREATE INDEX user_profiles_metadata_idx  ON public.user_profiles USING gin (metadata);
 
--- Comments
 COMMENT ON TABLE  public.user_profiles IS
   'Universal user profile. Extend per module via metadata jsonb.';
 COMMENT ON COLUMN public.user_profiles.role IS
-  'Role string matching appConfig.auth.roles. Not an enum — config-driven via CHECK.';
+  'Role string matching appConfig.auth.roles. Config-driven via CHECK.';
 COMMENT ON COLUMN public.user_profiles.metadata IS
   'Module-scoped extension. Namespace by module: {"commerce":{...},"saas":{...}}';
 COMMENT ON COLUMN public.user_profiles.locale IS
   'User preferred locale. Matches appConfig.locale.available.';
 
 -- ---------------------------------------------------------------------
--- STEP 3: CREATE activity_logs
+-- A.2  activity_logs — append-only audit log
 -- ---------------------------------------------------------------------
 CREATE TABLE public.activity_logs (
   id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -156,50 +186,23 @@ CREATE TABLE public.activity_logs (
   created_at     timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX activity_logs_user_id_idx       ON public.activity_logs(user_id);
-CREATE INDEX activity_logs_created_at_idx    ON public.activity_logs(created_at DESC);
-CREATE INDEX activity_logs_action_idx        ON public.activity_logs(action);
-CREATE INDEX activity_logs_resource_idx      ON public.activity_logs(resource_type, resource_id);
-CREATE INDEX activity_logs_metadata_idx      ON public.activity_logs USING gin (metadata);
+CREATE INDEX activity_logs_user_id_idx    ON public.activity_logs(user_id);
+CREATE INDEX activity_logs_created_at_idx ON public.activity_logs(created_at DESC);
+CREATE INDEX activity_logs_action_idx     ON public.activity_logs(action);
+CREATE INDEX activity_logs_resource_idx   ON public.activity_logs(resource_type, resource_id);
+CREATE INDEX activity_logs_metadata_idx   ON public.activity_logs USING gin (metadata);
 
 COMMENT ON TABLE  public.activity_logs IS
   'Audit log. Append-only. Populated via activity.service.ts.';
 COMMENT ON COLUMN public.activity_logs.action IS
-  'Dot-notation action key, e.g. "user.login", "profile.update", "admin.user.deactivate".';
-COMMENT ON COLUMN public.activity_logs.resource_type IS
-  'Optional resource type: "user", "order", "post", etc.';
+  'Dot-notation action key, e.g. "user.login", "admin.user.deactivate".';
 
 -- ---------------------------------------------------------------------
--- STEP 4: CREATE stripe_events (webhook idempotency)
--- ---------------------------------------------------------------------
-CREATE TABLE public.stripe_events (
-  id            text PRIMARY KEY,
-  type          text NOT NULL,
-  api_version   text,
-  payload       jsonb NOT NULL,
-  received_at   timestamptz NOT NULL DEFAULT now(),
-  processed_at  timestamptz,
-  error         text,
-  retry_count   integer NOT NULL DEFAULT 0
-);
-
-CREATE INDEX stripe_events_type_idx         ON public.stripe_events(type);
-CREATE INDEX stripe_events_received_at_idx  ON public.stripe_events(received_at DESC);
-CREATE INDEX stripe_events_unprocessed_idx  ON public.stripe_events(received_at)
-  WHERE processed_at IS NULL;
-
-COMMENT ON TABLE  public.stripe_events IS
-  'Stripe webhook idempotency & audit log. Prevents double-processing on retry.';
-COMMENT ON COLUMN public.stripe_events.id IS
-  'Stripe event.id — natural primary key for idempotency.';
-COMMENT ON COLUMN public.stripe_events.processed_at IS
-  'NULL = pending/failed. Set when handler completes successfully.';
-
--- ---------------------------------------------------------------------
--- STEP 5: HELPER FUNCTIONS
+-- A.3  Helper functions
 -- ---------------------------------------------------------------------
 
--- Auto-update `updated_at`
+-- Auto-update `updated_at` timestamp. Nama function: handle_updated_at
+-- (konsisten untuk semua trigger di file ini).
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -210,11 +213,10 @@ BEGIN
 END;
 $$;
 
--- Admin check — security-definer supaya gak recursion di RLS
--- Sync dengan appConfig.auth.adminRoles
--- Catatan: fungsi ini untuk dipakai dari application layer (service).
--- Policy RLS di bawah TIDAK memanggil fungsi ini — pakai subquery langsung
--- untuk menghindari dependency circular saat parsing policy.
+-- Admin check — security-definer supaya gak recursion di RLS.
+-- Dipakai dari application layer (service). Policy RLS di bawah
+-- TIDAK memanggil fungsi ini — pakai subquery langsung untuk menghindari
+-- dependency circular saat parsing policy.
 CREATE OR REPLACE FUNCTION public.is_admin(check_user_id uuid)
 RETURNS boolean
 LANGUAGE sql
@@ -231,29 +233,88 @@ AS $$
   );
 $$;
 
--- Auto-create profile untuk user baru
+-- ---------------------------------------------------------------------
+-- A.4  handle_new_user — OAuth-aware profile auto-provisioning
+-- ---------------------------------------------------------------------
+--  Resolve full_name dari banyak source (urutan prioritas):
+--    1. raw_user_meta_data.full_name  (email signup — kita inject sendiri)
+--    2. raw_user_meta_data.name       (Google OAuth — standard field)
+--    3. given_name + family_name      (Google OAuth — fallback)
+--    4. email prefix                   (last resort)
+--    5. 'User'                         (very last resort — email null)
+--
+--  Avatar: support Google ('picture') dan provider lain ('avatar_url').
+--
+--  Locale: filter ke whitelist sebelum INSERT, biar CHECK constraint
+--  gak crash kalau Google kirim locale di luar 'id'/'en' (mis. 'fr-FR').
+--
+--  EXCEPTION handler: signup HARUS sukses walau profile creation gagal
+--  (edge case). Admin bisa fix profile manual nanti. Fail-hard signup
+--  lebih buruk UX-nya.
+-- ---------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  resolved_name   text;
+  resolved_locale text;
+  resolved_avatar text;
 BEGIN
-  INSERT INTO public.user_profiles (id, email, full_name, role, locale)
+  -- Full name fallback chain
+  resolved_name := COALESCE(
+    NULLIF(TRIM(NEW.raw_user_meta_data ->> 'full_name'), ''),
+    NULLIF(TRIM(NEW.raw_user_meta_data ->> 'name'), ''),
+    NULLIF(TRIM(CONCAT(
+      NEW.raw_user_meta_data ->> 'given_name',
+      ' ',
+      NEW.raw_user_meta_data ->> 'family_name'
+    )), ''),
+    NULLIF(split_part(COALESCE(NEW.email, ''), '@', 1), ''),
+    'User'
+  );
+
+  -- Locale — filter ke whitelist, fallback ke 'id'
+  resolved_locale := CASE
+    WHEN NEW.raw_user_meta_data ->> 'locale' IN ('id', 'en')
+      THEN NEW.raw_user_meta_data ->> 'locale'
+    ELSE 'id'
+  END;
+
+  -- Avatar — Google pakai 'picture', provider lain pakai 'avatar_url'
+  resolved_avatar := COALESCE(
+    NULLIF(NEW.raw_user_meta_data ->> 'avatar_url', ''),
+    NULLIF(NEW.raw_user_meta_data ->> 'picture', '')
+  );
+
+  INSERT INTO public.user_profiles (
+    id, email, full_name, avatar_url, role, locale
+  )
   VALUES (
     NEW.id,
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data ->> 'full_name', split_part(NEW.email, '@', 1)),
+    resolved_name,
+    resolved_avatar,
     'user',
-    COALESCE(NEW.raw_user_meta_data ->> 'locale', 'id')
+    resolved_locale
   )
   ON CONFLICT (id) DO NOTHING;
+
   RETURN NEW;
+
+EXCEPTION
+  WHEN OTHERS THEN
+    -- Fail-soft: log warning tapi biarin signup lanjut.
+    RAISE WARNING '[handle_new_user] failed for user %: % (%)',
+      NEW.id, SQLERRM, SQLSTATE;
+    RETURN NEW;
 END;
 $$;
 
 -- ---------------------------------------------------------------------
--- STEP 6: TRIGGERS
+-- A.5  Triggers
 -- ---------------------------------------------------------------------
 CREATE TRIGGER on_user_profiles_updated
   BEFORE UPDATE ON public.user_profiles
@@ -266,18 +327,15 @@ CREATE TRIGGER on_auth_user_created
   EXECUTE FUNCTION public.handle_new_user();
 
 -- ---------------------------------------------------------------------
--- STEP 7: ROW LEVEL SECURITY
+-- A.6  Row Level Security — auth tables
 -- ---------------------------------------------------------------------
-ALTER TABLE public.user_profiles  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.activity_logs  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.stripe_events  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 
 -- ---- user_profiles policies ----
--- Catatan: policy admin pakai subquery langsung ke user_profiles,
+-- Catatan: admin policy pakai subquery langsung ke user_profiles,
 -- BUKAN memanggil is_admin(). Ini mencegah error "relation does not exist"
--- yang terjadi saat PostgreSQL mem-parse/compile policy — pada saat itu
--- fungsi is_admin() mungkin belum fully resolved meski sudah di-CREATE.
--- Subquery langsung lebih aman karena tidak ada indirection.
+-- yang bisa muncul saat PostgreSQL mem-parse/compile policy.
 
 CREATE POLICY "user_profiles_self_select"
   ON public.user_profiles FOR SELECT
@@ -364,23 +422,11 @@ CREATE POLICY "activity_logs_authenticated_insert"
   );
 -- Append-only: no UPDATE / DELETE policies.
 
--- ---- stripe_events policies ----
--- Webhook pakai SERVICE_ROLE_KEY → bypass RLS.
--- Admin-only read via UI.
-CREATE POLICY "stripe_events_admin_select"
-  ON public.stripe_events FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.user_profiles
-      WHERE id = auth.uid()
-        AND role IN ('super_admin', 'admin')
-        AND is_active = true
-    )
-  );
-
 -- ---------------------------------------------------------------------
--- STEP 8: AVATARS STORAGE BUCKET
+-- A.7  Storage — avatars bucket (tied to user profile)
 -- ---------------------------------------------------------------------
+-- Upsert bucket config — gak bisa DELETE karena Supabase protect_delete
+-- trigger, dan juga kita WANT to preserve existing user avatars.
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'avatars',
@@ -388,7 +434,11 @@ VALUES (
   true,
   2097152, -- 2MB
   ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-);
+)
+ON CONFLICT (id) DO UPDATE SET
+  public             = EXCLUDED.public,
+  file_size_limit    = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
 
 -- Public read
 CREATE POLICY "avatars_public_read"
@@ -436,50 +486,509 @@ CREATE POLICY "avatars_admin_all"
     )
   );
 
+
+-- =====================================================================
+-- ═══════════════════ SECTION B. COMMERCE — PHASE 1 ═══════════════════
+-- =====================================================================
+
 -- ---------------------------------------------------------------------
--- STEP 9: BACKFILL PROFILES UNTUK auth.users YANG ADA
+-- B.1  commerce_credentials — Lemon Squeezy API keys (encrypted)
+-- ---------------------------------------------------------------------
+--  Simpan encrypted API key per user per provider.
+--
+--  Security model:
+--    - `encrypted_api_key` pakai AES-256-GCM (lihat src/core/lib/encryption.ts)
+--    - Master key di ENCRYPTION_KEY env (server-only)
+--    - `key_hint` = masked partial untuk display (e.g. "********xyz9")
+--    - RLS: user cuma akses row-nya sendiri (owner_user_id = auth.uid())
+--
+--  UNIQUE (owner_user_id, provider) — 1 credential per provider per user.
+-- ---------------------------------------------------------------------
+CREATE TABLE public.commerce_credentials (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_user_id     uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  provider          text NOT NULL DEFAULT 'lemonsqueezy',
+  encrypted_api_key text NOT NULL,
+  key_hint          text NOT NULL,
+  store_id          text,
+  store_name        text,
+  is_test_mode      boolean NOT NULL DEFAULT false,
+  last_verified_at  timestamptz,
+  last_used_at      timestamptz,
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  updated_at        timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT commerce_credentials_provider_check
+    CHECK (provider IN ('lemonsqueezy')),
+
+  CONSTRAINT commerce_credentials_owner_provider_unique
+    UNIQUE (owner_user_id, provider)
+);
+
+CREATE INDEX commerce_credentials_owner_idx
+  ON public.commerce_credentials(owner_user_id);
+CREATE INDEX commerce_credentials_provider_idx
+  ON public.commerce_credentials(provider);
+
+COMMENT ON TABLE  public.commerce_credentials IS
+  'Encrypted commerce provider credentials (Phase 1: Lemon Squeezy only).';
+COMMENT ON COLUMN public.commerce_credentials.encrypted_api_key IS
+  'AES-256-GCM encrypted. Decrypt via src/core/lib/encryption.ts on server.';
+COMMENT ON COLUMN public.commerce_credentials.key_hint IS
+  'Masked partial key safe for client display (e.g. "********xyz9").';
+
+CREATE TRIGGER on_commerce_credentials_updated
+  BEFORE UPDATE ON public.commerce_credentials
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();
+
+ALTER TABLE public.commerce_credentials ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "commerce_credentials_self_select"
+  ON public.commerce_credentials FOR SELECT
+  USING (auth.uid() = owner_user_id);
+
+CREATE POLICY "commerce_credentials_self_insert"
+  ON public.commerce_credentials FOR INSERT
+  WITH CHECK (auth.uid() = owner_user_id);
+
+CREATE POLICY "commerce_credentials_self_update"
+  ON public.commerce_credentials FOR UPDATE
+  USING (auth.uid() = owner_user_id)
+  WITH CHECK (auth.uid() = owner_user_id);
+
+CREATE POLICY "commerce_credentials_self_delete"
+  ON public.commerce_credentials FOR DELETE
+  USING (auth.uid() = owner_user_id);
+
+
+-- =====================================================================
+-- ═══════════════════ SECTION C. COMMERCE — PHASE 2 ═══════════════════
+-- =====================================================================
+-- Thin wrapper tables — sync state dari Lemon Squeezy.
+-- Semua engine/analytics/receipt tetap di LS.
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- C.1  commerce_webhook_configs — per-user webhook URL + secret
+-- ---------------------------------------------------------------------
+--  User generate webhook config via UI → dapet unique URL token buat
+--  di-register di LS dashboard mereka:
+--    {APP_URL}/api/commerce/webhooks/{webhook_token}
+--
+--  Secret di-encrypt AES-GCM sama kayak API key.
+-- ---------------------------------------------------------------------
+CREATE TABLE public.commerce_webhook_configs (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_user_id     uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  provider          text NOT NULL DEFAULT 'lemonsqueezy',
+  encrypted_secret  text NOT NULL,
+  secret_hint       text NOT NULL,
+  -- Random URL-safe token, unique. Dipake di path /api/commerce/webhooks/{token}
+  webhook_token     text NOT NULL UNIQUE,
+  -- Optional: LS webhook ID kalau kita auto-register via API
+  ls_webhook_id     text,
+  -- Events yang di-subscribe (informational)
+  subscribed_events text[] NOT NULL DEFAULT ARRAY[
+    'order_created','order_refunded',
+    'subscription_created','subscription_updated','subscription_cancelled',
+    'subscription_resumed','subscription_expired','subscription_paused',
+    'subscription_unpaused','subscription_payment_success',
+    'subscription_payment_failed','subscription_payment_recovered'
+  ],
+  is_active         boolean NOT NULL DEFAULT true,
+  last_event_at     timestamptz,
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  updated_at        timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT commerce_webhook_configs_provider_check
+    CHECK (provider IN ('lemonsqueezy')),
+
+  CONSTRAINT commerce_webhook_configs_owner_provider_unique
+    UNIQUE (owner_user_id, provider)
+);
+
+CREATE INDEX commerce_webhook_configs_token_idx
+  ON public.commerce_webhook_configs(webhook_token);
+
+COMMENT ON TABLE  public.commerce_webhook_configs IS
+  'Per-user webhook config: unique URL token + HMAC secret (encrypted).';
+
+CREATE TRIGGER on_commerce_webhook_configs_updated
+  BEFORE UPDATE ON public.commerce_webhook_configs
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();
+
+ALTER TABLE public.commerce_webhook_configs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "commerce_webhook_configs_self_all"
+  ON public.commerce_webhook_configs FOR ALL
+  USING (auth.uid() = owner_user_id)
+  WITH CHECK (auth.uid() = owner_user_id);
+
+-- ---------------------------------------------------------------------
+-- C.2  commerce_webhook_events — append-only event log
+-- ---------------------------------------------------------------------
+--  Dual-purpose:
+--    a) Idempotency: UNIQUE(provider, event_id) cegah duplicate processing
+--    b) Audit trail + debugging (payload disimpan utuh di payload jsonb)
+--
+--  Processing state:
+--    - received_at : selalu di-set saat insert
+--    - verified    : signature HMAC valid
+--    - processed_at: udah di-route ke handler & sukses apply ke tabel
+--    - error       : error message kalau processing gagal
+--
+--  INSERT via service role (webhook request dari LS, no session).
+--  User cuma boleh SELECT untuk debugging di UI.
+-- ---------------------------------------------------------------------
+CREATE TABLE public.commerce_webhook_events (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_user_id  uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  provider       text NOT NULL DEFAULT 'lemonsqueezy',
+  -- LS pake X-Event-Id header — unique per event
+  event_id       text NOT NULL,
+  -- e.g. "order_created", "subscription_payment_success"
+  event_name     text NOT NULL,
+  -- Full JSON body dari LS
+  payload        jsonb NOT NULL,
+  signature      text,
+  verified       boolean NOT NULL DEFAULT false,
+  processed_at   timestamptz,
+  error          text,
+  received_at    timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT commerce_webhook_events_provider_check
+    CHECK (provider IN ('lemonsqueezy')),
+
+  CONSTRAINT commerce_webhook_events_provider_event_unique
+    UNIQUE (provider, event_id)
+);
+
+CREATE INDEX commerce_webhook_events_owner_received_idx
+  ON public.commerce_webhook_events(owner_user_id, received_at DESC);
+CREATE INDEX commerce_webhook_events_unprocessed_idx
+  ON public.commerce_webhook_events(received_at)
+  WHERE processed_at IS NULL;
+
+COMMENT ON TABLE  public.commerce_webhook_events IS
+  'Append-only webhook event log. Idempotent via UNIQUE(provider, event_id).';
+
+ALTER TABLE public.commerce_webhook_events ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "commerce_webhook_events_self_select"
+  ON public.commerce_webhook_events FOR SELECT
+  USING (auth.uid() = owner_user_id);
+
+-- ---------------------------------------------------------------------
+-- C.3  commerce_orders — synced from LS
+-- ---------------------------------------------------------------------
+--  Snapshot order dari LS. Di-populate via webhook (order_created,
+--  order_refunded) atau via backfill service.
+--
+--  Semua monetary value di-store sebagai integer cents (konvensi LS).
+--  Human-readable formatted string di-store juga (LS pre-formats).
+--
+--  User cuma SELECT. Write via service role dari webhook/backfill.
+-- ---------------------------------------------------------------------
+CREATE TABLE public.commerce_orders (
+  id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_user_id       uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  provider            text NOT NULL DEFAULT 'lemonsqueezy',
+  provider_order_id   text NOT NULL,
+  order_number        integer,
+  -- LS "identifier" field — UUID-like external ref
+  identifier          text,
+
+  -- Customer info (denormalized snapshot saat order dibuat)
+  customer_email      text,
+  customer_name       text,
+  customer_id         text,
+  store_id            text,
+
+  -- Status: pending | paid | void | refunded | partial_refund
+  status              text NOT NULL,
+  status_formatted    text,
+
+  currency            text NOT NULL,
+  -- All amounts in cents
+  subtotal            integer NOT NULL DEFAULT 0,
+  tax                 integer NOT NULL DEFAULT 0,
+  total               integer NOT NULL DEFAULT 0,
+  refunded_amount     integer NOT NULL DEFAULT 0,
+  -- Human-readable (LS pre-formats)
+  subtotal_formatted  text,
+  total_formatted     text,
+  tax_formatted       text,
+
+  refunded_at         timestamptz,
+  -- LS created_at (bukan row created_at di DB kita)
+  order_created_at    timestamptz,
+
+  metadata            jsonb NOT NULL DEFAULT '{}'::jsonb,
+  raw_payload         jsonb,
+  created_at          timestamptz NOT NULL DEFAULT now(),
+  updated_at          timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT commerce_orders_provider_check
+    CHECK (provider IN ('lemonsqueezy')),
+
+  CONSTRAINT commerce_orders_provider_order_unique
+    UNIQUE (provider, provider_order_id)
+);
+
+CREATE INDEX commerce_orders_owner_created_idx
+  ON public.commerce_orders(owner_user_id, order_created_at DESC);
+CREATE INDEX commerce_orders_status_idx
+  ON public.commerce_orders(owner_user_id, status);
+CREATE INDEX commerce_orders_customer_idx
+  ON public.commerce_orders(owner_user_id, customer_id);
+
+COMMENT ON TABLE public.commerce_orders IS
+  'Orders synced from Lemon Squeezy via webhook or backfill.';
+
+CREATE TRIGGER on_commerce_orders_updated
+  BEFORE UPDATE ON public.commerce_orders
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();
+
+ALTER TABLE public.commerce_orders ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "commerce_orders_self_select"
+  ON public.commerce_orders FOR SELECT
+  USING (auth.uid() = owner_user_id);
+
+-- ---------------------------------------------------------------------
+-- C.4  commerce_subscriptions — synced from LS
+-- ---------------------------------------------------------------------
+--  Subscription state dari LS. Di-populate via webhook dan juga
+--  immediate sync setelah action (pause/resume/cancel) biar UI
+--  gak nunggu webhook delay.
+-- ---------------------------------------------------------------------
+CREATE TABLE public.commerce_subscriptions (
+  id                         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_user_id              uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  provider                   text NOT NULL DEFAULT 'lemonsqueezy',
+  provider_subscription_id   text NOT NULL,
+
+  order_id                   text,
+  order_item_id              text,
+  product_id                 text,
+  variant_id                 text,
+  product_name               text,
+  variant_name               text,
+
+  customer_email             text,
+  customer_name              text,
+  customer_id                text,
+  store_id                   text,
+
+  -- Status: on_trial | active | paused | past_due | unpaid | cancelled | expired
+  status                     text NOT NULL,
+  status_formatted           text,
+
+  -- Pause info
+  pause_mode                 text, -- void | free
+  pause_resumes_at           timestamptz,
+
+  -- Payment method snapshot
+  card_brand                 text,
+  card_last_four             text,
+
+  -- Billing cycle
+  trial_ends_at              timestamptz,
+  billing_anchor             smallint,
+  renews_at                  timestamptz,
+  ends_at                    timestamptz,
+
+  subscription_created_at    timestamptz,
+
+  metadata                   jsonb NOT NULL DEFAULT '{}'::jsonb,
+  raw_payload                jsonb,
+  created_at                 timestamptz NOT NULL DEFAULT now(),
+  updated_at                 timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT commerce_subscriptions_provider_check
+    CHECK (provider IN ('lemonsqueezy')),
+
+  CONSTRAINT commerce_subscriptions_provider_sub_unique
+    UNIQUE (provider, provider_subscription_id)
+);
+
+CREATE INDEX commerce_subscriptions_owner_created_idx
+  ON public.commerce_subscriptions(owner_user_id, subscription_created_at DESC);
+CREATE INDEX commerce_subscriptions_status_idx
+  ON public.commerce_subscriptions(owner_user_id, status);
+CREATE INDEX commerce_subscriptions_customer_idx
+  ON public.commerce_subscriptions(owner_user_id, customer_id);
+
+COMMENT ON TABLE public.commerce_subscriptions IS
+  'Subscriptions synced from Lemon Squeezy. Actions proxied to LS API.';
+
+CREATE TRIGGER on_commerce_subscriptions_updated
+  BEFORE UPDATE ON public.commerce_subscriptions
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();
+
+ALTER TABLE public.commerce_subscriptions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "commerce_subscriptions_self_select"
+  ON public.commerce_subscriptions FOR SELECT
+  USING (auth.uid() = owner_user_id);
+
+-- ---------------------------------------------------------------------
+-- C.5  commerce_customers — synced from LS
+-- ---------------------------------------------------------------------
+CREATE TABLE public.commerce_customers (
+  id                      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_user_id           uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  provider                text NOT NULL DEFAULT 'lemonsqueezy',
+  provider_customer_id    text NOT NULL,
+
+  email                   text,
+  name                    text,
+  city                    text,
+  region                  text,
+  country                 text,
+
+  -- Aggregate financials (snapshot dari LS — LS yang compute)
+  total_revenue_currency  integer DEFAULT 0,
+  mrr                     integer DEFAULT 0,
+  -- subscribed | unsubscribed | archived | requires_verification | invalid_email | bounced
+  status                  text,
+
+  metadata                jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at              timestamptz NOT NULL DEFAULT now(),
+  updated_at              timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT commerce_customers_provider_check
+    CHECK (provider IN ('lemonsqueezy')),
+
+  CONSTRAINT commerce_customers_provider_customer_unique
+    UNIQUE (provider, provider_customer_id)
+);
+
+CREATE INDEX commerce_customers_owner_idx
+  ON public.commerce_customers(owner_user_id);
+CREATE INDEX commerce_customers_email_idx
+  ON public.commerce_customers(owner_user_id, email);
+
+COMMENT ON TABLE public.commerce_customers IS
+  'Customers synced from Lemon Squeezy. Aggregate numbers (MRR, total) computed by LS.';
+
+CREATE TRIGGER on_commerce_customers_updated
+  BEFORE UPDATE ON public.commerce_customers
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();
+
+ALTER TABLE public.commerce_customers ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "commerce_customers_self_select"
+  ON public.commerce_customers FOR SELECT
+  USING (auth.uid() = owner_user_id);
+
+-- ---------------------------------------------------------------------
+-- C.6  Grants — standard Supabase pattern
+-- ---------------------------------------------------------------------
+-- Write access untuk commerce_* tables di-handle via service role dari
+-- webhook route / backfill service. Authenticated user cuma SELECT
+-- kecuali untuk webhook_configs (CRUD penuh karena user-managed).
+GRANT SELECT, INSERT, UPDATE, DELETE
+  ON public.commerce_webhook_configs TO authenticated;
+GRANT SELECT ON public.commerce_webhook_events  TO authenticated;
+GRANT SELECT ON public.commerce_orders          TO authenticated;
+GRANT SELECT ON public.commerce_subscriptions   TO authenticated;
+GRANT SELECT ON public.commerce_customers       TO authenticated;
+
+
+-- =====================================================================
+-- ═══════════════════ SECTION D. BACKFILL & SANITY CHECK ═══════════════════
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- D.1  Backfill profiles untuk auth.users yang sudah ada
 -- ---------------------------------------------------------------------
 -- auth.users tidak dihapus saat nuclear (Supabase-managed), jadi kita
 -- rebuild profile-nya. Role default 'user' — elevate ke admin nanti
 -- via seed script atau manual UPDATE.
-INSERT INTO public.user_profiles (id, email, full_name, role, locale)
+INSERT INTO public.user_profiles (id, email, full_name, avatar_url, role, locale)
 SELECT
   u.id,
   u.email,
-  COALESCE(u.raw_user_meta_data ->> 'full_name', split_part(u.email, '@', 1)),
+  COALESCE(
+    NULLIF(TRIM(u.raw_user_meta_data ->> 'full_name'), ''),
+    NULLIF(TRIM(u.raw_user_meta_data ->> 'name'), ''),
+    NULLIF(TRIM(CONCAT(
+      u.raw_user_meta_data ->> 'given_name',
+      ' ',
+      u.raw_user_meta_data ->> 'family_name'
+    )), ''),
+    NULLIF(split_part(COALESCE(u.email, ''), '@', 1), ''),
+    'User'
+  ),
+  COALESCE(
+    NULLIF(u.raw_user_meta_data ->> 'avatar_url', ''),
+    NULLIF(u.raw_user_meta_data ->> 'picture', '')
+  ),
   'user',
-  COALESCE(u.raw_user_meta_data ->> 'locale', 'id')
+  CASE
+    WHEN u.raw_user_meta_data ->> 'locale' IN ('id', 'en')
+      THEN u.raw_user_meta_data ->> 'locale'
+    ELSE 'id'
+  END
 FROM auth.users u
 LEFT JOIN public.user_profiles p ON p.id = u.id
 WHERE p.id IS NULL
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------------
--- STEP 10: SANITY CHECK
+-- D.2  Sanity check
 -- ---------------------------------------------------------------------
 DO $$
 DECLARE
-  profile_count   integer;
-  activity_count  integer;
-  stripe_count    integer;
-  bucket_exists   boolean;
-  admin_count     integer;
+  profile_count          integer;
+  activity_count         integer;
+  credentials_count      integer;
+  webhook_configs_count  integer;
+  webhook_events_count   integer;
+  orders_count           integer;
+  subscriptions_count    integer;
+  customers_count        integer;
+  bucket_exists          boolean;
+  admin_count            integer;
 BEGIN
-  SELECT count(*) INTO profile_count  FROM public.user_profiles;
-  SELECT count(*) INTO activity_count FROM public.activity_logs;
-  SELECT count(*) INTO stripe_count   FROM public.stripe_events;
-  SELECT EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'avatars') INTO bucket_exists;
-  SELECT count(*) INTO admin_count    FROM public.user_profiles
+  SELECT count(*) INTO profile_count          FROM public.user_profiles;
+  SELECT count(*) INTO activity_count         FROM public.activity_logs;
+  SELECT count(*) INTO credentials_count      FROM public.commerce_credentials;
+  SELECT count(*) INTO webhook_configs_count  FROM public.commerce_webhook_configs;
+  SELECT count(*) INTO webhook_events_count   FROM public.commerce_webhook_events;
+  SELECT count(*) INTO orders_count           FROM public.commerce_orders;
+  SELECT count(*) INTO subscriptions_count    FROM public.commerce_subscriptions;
+  SELECT count(*) INTO customers_count        FROM public.commerce_customers;
+  SELECT EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'avatars')
+    INTO bucket_exists;
+  SELECT count(*) INTO admin_count FROM public.user_profiles
     WHERE role IN ('super_admin', 'admin') AND is_active = true;
 
   RAISE NOTICE '====================================================';
-  RAISE NOTICE '  NUCLEAR SETUP COMPLETE';
+  RAISE NOTICE '  NUCLEAR SETUP COMPLETE — PHASE 0 + 1 + 2';
   RAISE NOTICE '====================================================';
-  RAISE NOTICE '  user_profiles   : % rows', profile_count;
-  RAISE NOTICE '    └─ admins     : %', admin_count;
-  RAISE NOTICE '  activity_logs   : % rows (reset)', activity_count;
-  RAISE NOTICE '  stripe_events   : % rows (reset)', stripe_count;
-  RAISE NOTICE '  avatars bucket  : %', CASE WHEN bucket_exists THEN 'ready ✓' ELSE 'MISSING ✗' END;
+  RAISE NOTICE '  SECTION A — Auth Foundation (Phase 0+1)';
+  RAISE NOTICE '    user_profiles              : % rows', profile_count;
+  RAISE NOTICE '      └─ admins                : %', admin_count;
+  RAISE NOTICE '    activity_logs              : % rows (reset)', activity_count;
+  RAISE NOTICE '    avatars bucket             : %',
+    CASE WHEN bucket_exists THEN 'ready ✓' ELSE 'MISSING ✗' END;
+  RAISE NOTICE '';
+  RAISE NOTICE '  SECTION B — Commerce Phase 1';
+  RAISE NOTICE '    commerce_credentials       : % rows (reset)', credentials_count;
+  RAISE NOTICE '';
+  RAISE NOTICE '  SECTION C — Commerce Phase 2';
+  RAISE NOTICE '    commerce_webhook_configs   : % rows (reset)', webhook_configs_count;
+  RAISE NOTICE '    commerce_webhook_events    : % rows (reset)', webhook_events_count;
+  RAISE NOTICE '    commerce_orders            : % rows (reset)', orders_count;
+  RAISE NOTICE '    commerce_subscriptions     : % rows (reset)', subscriptions_count;
+  RAISE NOTICE '    commerce_customers         : % rows (reset)', customers_count;
   RAISE NOTICE '====================================================';
   IF admin_count = 0 THEN
     RAISE NOTICE '  ⚠️  Belum ada admin user!';
@@ -494,13 +1003,18 @@ BEGIN
   RAISE NOTICE '    1. Seed users (recommended):';
   RAISE NOTICE '         node scripts/seed.js';
   RAISE NOTICE '';
-  RAISE NOTICE '    2. Atau elevate manual kalau sudah ada auth user:';
-  RAISE NOTICE '         UPDATE public.user_profiles';
-  RAISE NOTICE '         SET role=''super_admin''';
-  RAISE NOTICE '         WHERE email=''you@example.com'';';
+  RAISE NOTICE '    2. Set ENCRYPTION_KEY di .env.local:';
+  RAISE NOTICE '         node -e "console.log(require(''crypto'')';
+  RAISE NOTICE '           .randomBytes(32).toString(''base64''))"';
   RAISE NOTICE '';
   RAISE NOTICE '    3. Regenerate TS types:';
   RAISE NOTICE '         npx supabase gen types typescript \';
   RAISE NOTICE '           --project-id <ID> > src/core/types/database.ts';
+  RAISE NOTICE '';
+  RAISE NOTICE '    4. Configure Supabase Dashboard:';
+  RAISE NOTICE '         Auth → Providers → Email → Confirm email:';
+  RAISE NOTICE '           match dengan appConfig.auth.requireEmailVerification';
+  RAISE NOTICE '         Auth → URL Configuration → Redirect URLs:';
+  RAISE NOTICE '           tambah /api/auth/callback dan /reset-password';
   RAISE NOTICE '====================================================';
 END $$;

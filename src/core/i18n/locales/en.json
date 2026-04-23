@@ -20,18 +20,29 @@
     "error": "An error occurred",
     "retry": "Retry",
     "active": "Active",
-    "inactive": "Inactive"
+    "inactive": "Inactive",
+    "disconnect": "Disconnect",
+    "connect": "Connect",
+    "connecting": "Connecting...",
+    "disconnecting": "Disconnecting...",
+    "connected": "Connected",
+    "notConnected": "Not connected"
   },
   "auth": {
     "emailLabel": "Email",
     "passwordLabel": "Password",
+    "confirmPasswordLabel": "Confirm Password",
+    "fullNameLabel": "Full Name",
     "emailPlaceholder": "email@example.com",
     "passwordPlaceholder": "Enter your password",
+    "confirmPasswordPlaceholder": "Re-enter your password",
+    "fullNamePlaceholder": "John Doe",
     "forgotPassword": "Forgot password?",
+    "forgotPasswordLink": "Forgot password?",
     "contactAdmin": "Contact Administrator",
     "invalidCredentials": "Invalid email or password",
     "loginFailed": "Login failed. Please try again.",
-    "accountNotRegistered": "Account is not registered. Please contact administrator.",
+    "accountNotRegistered": "Account is not registered.",
     "accountDeactivated": "Your account has been deactivated. Please contact administrator.",
     "genericError": "Something went wrong. Please try again.",
     "logoutConfirmTitle": "Sign out of Application",
@@ -39,6 +50,8 @@
     "logoutConfirmButton": "Sign out",
     "signInWithEmail": "Sign in with Email",
     "signInWithGoogle": "Sign in with Google",
+    "signUpWithEmail": "Sign up with Email",
+    "signUpWithGoogle": "Sign up with Google",
     "orContinueWith": "or continue with",
     "tabPassword": "Password",
     "tabMagicLink": "Magic Link",
@@ -47,11 +60,42 @@
     "magicLinkSent": "A sign-in link has been sent to your email. Check your inbox and click the link to continue.",
     "callbackError": "Failed to process authentication. Please try again.",
     "sessionExpired": "Your session has expired. Please sign in again.",
+    "registerTitle": "Create Account",
+    "registerSubtitle": "Sign up to start using the application",
+    "registerButton": "Sign up",
+    "registering": "Signing up...",
+    "registerSuccess": "Registration successful! Redirecting...",
+    "registerSuccessVerify": "Registration successful! Please check your email to verify your account.",
+    "alreadyHaveAccount": "Already have an account?",
+    "dontHaveAccount": "Don't have an account?",
+    "signInHere": "Sign in here",
+    "signUpHere": "Sign up here",
+    "emailAlreadyRegistered": "Email is already registered. Please sign in.",
+    "weakPassword": "Password is too weak. Use at least 8 characters.",
+    "forgotPasswordTitle": "Forgot Password",
+    "forgotPasswordSubtitle": "Enter your email. We'll send you a link to reset your password.",
+    "forgotPasswordButton": "Send Reset Link",
+    "forgotPasswordSending": "Sending...",
+    "forgotPasswordSent": "If the email is registered, a reset link has been sent. Please check your inbox.",
+    "backToLogin": "Back to sign in",
+    "resetPasswordTitle": "Reset Password",
+    "resetPasswordSubtitle": "Enter your new password",
+    "resetPasswordButton": "Save New Password",
+    "resetPasswordUpdating": "Saving...",
+    "resetPasswordSuccess": "Password changed successfully. Redirecting to dashboard...",
+    "resetPasswordInvalidSession": "Reset link is invalid or expired. Please request a new one.",
+    "publicSignupDisabled": "Public signup is currently disabled. Please contact administrator.",
     "validation": {
       "emailRequired": "Email is required",
       "emailInvalid": "Invalid email format",
       "passwordRequired": "Password is required",
-      "passwordMinLength": "Password must be at least 6 characters"
+      "passwordMinLength": "Password must be at least 6 characters",
+      "passwordMinLengthRegister": "Password must be at least 8 characters",
+      "confirmPasswordRequired": "Confirm password is required",
+      "passwordMismatch": "Passwords do not match",
+      "fullNameRequired": "Full name is required",
+      "fullNameMinLength": "Name must be at least 2 characters",
+      "fullNameMaxLength": "Name must be at most 100 characters"
     }
   },
   "dashboard": {
@@ -95,7 +139,10 @@
     "pageTitle": "Settings",
     "pageSubtitle": "System configuration and preferences",
     "placeholderTitle": "Settings Page",
-    "placeholderMessage": "This page is under development. System settings will be available here."
+    "placeholderMessage": "This page is under development. System settings will be available here.",
+    "integrationsTitle": "Integrations",
+    "integrationsSubtitle": "Connect third-party services to your account",
+    "integrationsLink": "Integrations"
   },
   "admin": {
     "pageTitle": "Admin Panel",
@@ -121,7 +168,11 @@
     "settings": "Settings",
     "admin": "Admin",
     "menu": "Menu",
-    "administration": "Administration"
+    "administration": "Administration",
+    "products": "Products",
+    "orders": "Orders",
+    "subscriptions": "Subscriptions",
+    "customers": "Customers"
   },
   "userMenu": {
     "myProfile": "My Profile"
@@ -136,5 +187,182 @@
   "offline": {
     "disconnected": "No internet connection",
     "reconnected": "Internet connection restored"
+  },
+  "commerce": {
+    "pageTitle": "Products",
+    "pageSubtitle": "Product catalog from your Lemon Squeezy store",
+    "providerName": "Lemon Squeezy",
+    "connectTitle": "Connect Lemon Squeezy",
+    "connectSubtitle": "Enter your Lemon Squeezy API key to start syncing products",
+    "apiKeyLabel": "API Key",
+    "apiKeyPlaceholder": "Enter your Lemon Squeezy API key",
+    "apiKeyHint": "Get your API key from Lemon Squeezy Dashboard → Settings → API",
+    "testModeLabel": "Test Mode",
+    "testModeDescription": "Enable to use a test API key",
+    "connectButton": "Connect Account",
+    "connectingButton": "Connecting...",
+    "disconnectButton": "Disconnect",
+    "disconnectConfirmTitle": "Disconnect?",
+    "disconnectConfirmDescription": "Once disconnected, product data will not be accessible until you reconnect. Credentials will be permanently deleted.",
+    "statusConnectedTitle": "Connected to {storeName}",
+    "statusConnectedSubtitle": "Credentials saved and verified",
+    "statusKeyLabel": "API Key",
+    "statusModeLabel": "Mode",
+    "statusModeTest": "Test",
+    "statusModeLive": "Live",
+    "statusLastVerified": "Last verified {time}",
+    "connectSuccess": "Successfully connected to {storeName}!",
+    "disconnectSuccess": "Connection disconnected successfully.",
+    "errorInvalidCredentials": "Invalid API key. Please check and try again.",
+    "errorRateLimited": "Too many attempts. Please try again later.",
+    "errorForbidden": "API key doesn't have sufficient access.",
+    "errorNetwork": "Failed to reach Lemon Squeezy servers. Check your internet connection.",
+    "errorApiGeneric": "An error occurred while calling Lemon Squeezy API.",
+    "errorSaveFailed": "Failed to save credentials.",
+    "errorDecryptFailed": "Failed to read credentials. Please reconnect.",
+    "errorNotConnected": "You haven't connected your Lemon Squeezy account yet.",
+    "productsEmptyTitle": "No Products Yet",
+    "productsEmptySubtitle": "No products found in your store. Create products in Lemon Squeezy dashboard.",
+    "productsNotConnectedTitle": "Lemon Squeezy Not Connected",
+    "productsNotConnectedSubtitle": "Connect your account first to view products.",
+    "productsConnectCta": "Connect Now",
+    "productsLoading": "Loading products...",
+    "productsRefresh": "Refresh",
+    "productVariantsLabel": "{count} variants",
+    "productPriceFrom": "From",
+    "productStatusDraft": "Draft",
+    "productStatusPublished": "Available",
+    "validation": {
+      "apiKeyRequired": "API key is required",
+      "apiKeyTooShort": "API key is too short",
+      "apiKeyTooLong": "API key is too long"
+    },
+    "common": {
+      "notConnected": "Lemon Squeezy is not connected. Connect your account from the integrations settings page.",
+      "syncError": "Failed to sync data",
+      "loading": "Loading data..."
+    },
+    "orders": {
+      "pageTitle": "Orders",
+      "pageDescription": "Order list from Lemon Squeezy",
+      "empty": "No orders yet.",
+      "syncFirst": "Sync for the first time",
+      "sync": "Sync",
+      "syncing": "Syncing...",
+      "filterEmail": "Filter by customer email",
+      "showing": "Showing {count} of {total} orders",
+      "endsAt": "Ends {date}",
+      "columns": {
+        "orderNumber": "Order #",
+        "customer": "Customer",
+        "status": "Status",
+        "total": "Total",
+        "date": "Date"
+      },
+      "status": {
+        "all": "All statuses",
+        "paid": "Paid",
+        "pending": "Pending",
+        "refunded": "Refunded",
+        "partial_refund": "Partial refund",
+        "void": "Void"
+      }
+    },
+    "subscriptions": {
+      "pageTitle": "Subscriptions",
+      "pageDescription": "Manage active subscriptions from Lemon Squeezy",
+      "empty": "No subscriptions yet.",
+      "syncFirst": "Sync for the first time",
+      "sync": "Sync",
+      "syncing": "Syncing...",
+      "filterEmail": "Filter by customer email",
+      "showing": "Showing {count} of {total} subscriptions",
+      "endsAt": "Ends {date}",
+      "columns": {
+        "customer": "Customer",
+        "product": "Product",
+        "status": "Status",
+        "renewsAt": "Renews"
+      },
+      "status": {
+        "all": "All statuses",
+        "active": "Active",
+        "on_trial": "On trial",
+        "paused": "Paused",
+        "past_due": "Past due",
+        "unpaid": "Unpaid",
+        "cancelled": "Cancelled",
+        "expired": "Expired"
+      },
+      "actions": {
+        "pause": "Pause subscription",
+        "resume": "Resume subscription",
+        "cancel": "Cancel subscription",
+        "none": "No actions available",
+        "actionFailed": "Action failed"
+      },
+      "confirmPause": {
+        "title": "Pause this subscription?",
+        "description": "The customer will not be billed until the subscription is resumed. Access will be suspended during pause."
+      },
+      "confirmResume": {
+        "title": "Resume this subscription?",
+        "description": "The customer will be billed again and access will be restored."
+      },
+      "confirmCancel": {
+        "title": "Cancel this subscription?",
+        "description": "The subscription will be cancelled but the customer keeps access until the period ends."
+      }
+    },
+    "customers": {
+      "pageTitle": "Customers",
+      "pageDescription": "Customer list from Lemon Squeezy",
+      "empty": "No customers yet.",
+      "syncFirst": "Sync for the first time",
+      "sync": "Sync",
+      "syncing": "Syncing...",
+      "filterEmail": "Filter by customer email",
+      "showing": "Showing {count} of {total} customers",
+      "columns": {
+        "name": "Name",
+        "email": "Email",
+        "country": "Country",
+        "mrr": "MRR",
+        "totalRevenue": "Total Revenue",
+        "joined": "Joined"
+      }
+    },
+    "webhooks": {
+      "pageTitle": "Webhook",
+      "pageDescription": "Configure webhook to receive real-time events from Lemon Squeezy",
+      "title": "Webhook Configuration",
+      "notConnectedDescription": "Webhook not configured yet. Generate URL and secret to start receiving events from Lemon Squeezy.",
+      "generate": "Generate Webhook",
+      "generating": "Generating...",
+      "connectedTitle": "Webhook Active",
+      "urlLabel": "Webhook URL",
+      "urlHelp": "Copy this URL and register it at Lemon Squeezy Dashboard → Settings → Webhooks",
+      "secretLabel": "Secret (masked)",
+      "secretHintHelp": "The actual secret cannot be shown again. Regenerate to create a new one.",
+      "secretRevealWarningTitle": "Copy Secret Now",
+      "secretRevealWarning": "This secret is shown only once. Copy and save it in a safe place. Once you close this page, the secret cannot be viewed again.",
+      "subscribedEvents": "Subscribed Events",
+      "lastEvent": "Last Event",
+      "noEventsYet": "No events yet",
+      "regenerate": "Regenerate",
+      "delete": "Delete Webhook",
+      "confirmRegenerate": {
+        "title": "Regenerate webhook?",
+        "description": "Old URL and secret will be replaced. You must update the configuration in Lemon Squeezy dashboard."
+      },
+      "confirmDelete": {
+        "title": "Delete webhook configuration?",
+        "description": "Events from Lemon Squeezy will no longer be received until the webhook is set up again."
+      }
+    },
+    "checkout": {
+      "buy": "Buy Now",
+      "error": "Failed to create checkout: {error}"
+    }
   }
 }

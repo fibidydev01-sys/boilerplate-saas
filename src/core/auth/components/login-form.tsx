@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -9,14 +10,16 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { HelpCircle } from "lucide-react";
-import { appConfig, brandingConfig, type AuthProvider } from "@/config";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { appConfig, brandingConfig } from "@/config";
+import { ROUTES } from "@/core/constants";
 import { t } from "@/core/i18n";
 import {
   EmailPasswordForm,
   OAuthButton,
-  GoogleIcon,
   MagicLinkForm,
+  oauthProviderConfig,
 } from "./providers";
 
 interface LoginFormProps {
@@ -25,34 +28,46 @@ interface LoginFormProps {
    * Di-forward ke semua provider component biar post-login redirect konsisten.
    */
   returnTo?: string | null;
+
+  /**
+   * Error code dari callback redirect. Common values:
+   *   - auth_callback_error       → OAuth/magic link exchange gagal
+   *   - account_not_registered    → user ada di auth, profile tidak ada
+   *   - account_deactivated       → profile exists tapi is_active=false
+   */
+  error?: string | null;
 }
 
 /**
  * LoginForm — composer.
  *
- * Render provider yang enabled di `appConfig.auth.providers`. Urutan di array
- * = urutan render. Kalau ada lebih dari 1 provider, tampilin divider
- * "atau lanjut dengan" di antara primary (email/magic-link) & OAuth.
+ * Render provider yang enabled di:
+ *   - appConfig.auth.passwordProviders (email/password + magic link)
+ *   - appConfig.auth.oauthProviders (google, dst)
  *
- * Design:
- *   - Email & magic-link di-tab kalau keduanya enabled (biar gak tumpang).
- *   - OAuth buttons selalu di bawah divider.
- *   - Semua provider dapet `returnTo` yang sama.
+ * Nambah OAuth provider: edit appConfig.auth.oauthProviders +
+ * register icon/label di oauth-config.tsx. Gak perlu touch file ini.
  */
-export function LoginForm({ returnTo }: LoginFormProps) {
-  const providers = appConfig.auth.providers as readonly AuthProvider[];
-  const hasEmail = providers.includes("email");
-  const hasMagicLink = providers.includes("magic-link");
-  const oauthProviders = providers.filter((p) =>
-    isOAuthProvider(p)
-  ) as readonly OAuthProviderName[];
+export function LoginForm({ returnTo, error }: LoginFormProps) {
+  const passwordProviders = appConfig.auth.passwordProviders;
+  const oauthProviders = appConfig.auth.oauthProviders;
 
-  // Tab state — kalau email + magic-link keduanya ada, user bisa switch
+  const hasEmail = passwordProviders.includes("email");
+  const hasMagicLink = passwordProviders.includes("magic-link");
+  const hasPrimary = hasEmail || hasMagicLink;
+  const hasOAuth = oauthProviders.length > 0;
+
   const [emailTab, setEmailTab] = useState<"password" | "magic">("password");
   const showEmailTabs = hasEmail && hasMagicLink;
 
-  const hasPrimary = hasEmail || hasMagicLink;
-  const hasOAuth = oauthProviders.length > 0;
+  // Build register URL dengan returnTo forwarded
+  const registerHref = useMemo(() => {
+    if (!returnTo) return ROUTES.REGISTER;
+    const params = new URLSearchParams({ returnTo });
+    return `${ROUTES.REGISTER}?${params.toString()}`;
+  }, [returnTo]);
+
+  const callbackErrorMessage = resolveCallbackError(error);
 
   return (
     <Card className="w-full max-w-md shadow-lg">
@@ -79,6 +94,14 @@ export function LoginForm({ returnTo }: LoginFormProps) {
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {/* Error dari callback redirect (deactivated, not_registered, dll) */}
+        {callbackErrorMessage && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{callbackErrorMessage}</AlertDescription>
+          </Alert>
+        )}
+
         {/* Primary: email / magic-link */}
         {hasPrimary && (
           <>
@@ -87,22 +110,20 @@ export function LoginForm({ returnTo }: LoginFormProps) {
                 <button
                   type="button"
                   onClick={() => setEmailTab("password")}
-                  className={`flex-1 rounded-md px-3 py-1.5 font-medium transition ${
-                    emailTab === "password"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`flex-1 rounded-md px-3 py-1.5 font-medium transition ${emailTab === "password"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                    }`}
                 >
                   {t("auth.tabPassword")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setEmailTab("magic")}
-                  className={`flex-1 rounded-md px-3 py-1.5 font-medium transition ${
-                    emailTab === "magic"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`flex-1 rounded-md px-3 py-1.5 font-medium transition ${emailTab === "magic"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                    }`}
                 >
                   {t("auth.tabMagicLink")}
                 </button>
@@ -114,9 +135,21 @@ export function LoginForm({ returnTo }: LoginFormProps) {
             )}
 
             {hasMagicLink && (!showEmailTabs || emailTab === "magic") && (
-              <MagicLinkForm returnTo={returnTo} />
+              <MagicLinkForm returnTo={returnTo} mode="login" />
             )}
           </>
+        )}
+
+        {/* Forgot password link — only show for password flow */}
+        {hasEmail && (!showEmailTabs || emailTab === "password") && (
+          <div className="flex justify-end">
+            <Link
+              href={ROUTES.FORGOT_PASSWORD}
+              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              {t("auth.forgotPasswordLink")}
+            </Link>
+          </div>
         )}
 
         {/* Divider */}
@@ -142,7 +175,7 @@ export function LoginForm({ returnTo }: LoginFormProps) {
                 <OAuthButton
                   key={provider}
                   provider={provider}
-                  label={t(config.labelKey)}
+                  label={t(config.loginLabelKey)}
                   icon={config.icon}
                   returnTo={returnTo}
                 />
@@ -151,37 +184,39 @@ export function LoginForm({ returnTo }: LoginFormProps) {
           </div>
         )}
 
-        {/* Help text */}
-        <div className="flex items-center justify-center gap-2 pt-2 text-sm text-muted-foreground">
-          <HelpCircle className="h-4 w-4" />
-          <p>
-            {t("auth.forgotPassword")}{" "}
-            <span className="font-medium text-foreground">
-              {t("auth.contactAdmin")}
-            </span>
-          </p>
-        </div>
+        {/* Sign up link */}
+        {appConfig.auth.allowPublicSignup && (
+          <div className="text-center text-sm text-muted-foreground pt-2">
+            {t("auth.dontHaveAccount")}{" "}
+            <Link
+              href={registerHref}
+              className="font-medium text-primary hover:underline"
+            >
+              {t("auth.signUpHere")}
+            </Link>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 }
 
 // ------------------------------------------------------------------
-// OAuth provider registry
+// Error code → i18n message resolver
 // ------------------------------------------------------------------
 
-type OAuthProviderName = "google";
-
-function isOAuthProvider(p: AuthProvider): p is OAuthProviderName {
-  return p === "google";
+function resolveCallbackError(code: string | null | undefined): string | null {
+  if (!code) return null;
+  switch (code) {
+    case "account_deactivated":
+      return t("auth.accountDeactivated");
+    case "account_not_registered":
+      return t("auth.accountNotRegistered");
+    case "auth_callback_error":
+      return t("auth.callbackError");
+    default:
+      // Unknown error codes — fallback ke generic. Kalau mau lebih detail,
+      // tambah case di sini.
+      return t("auth.genericError");
+  }
 }
-
-const oauthProviderConfig: Record<
-  OAuthProviderName,
-  { labelKey: Parameters<typeof t>[0]; icon: React.ReactNode }
-> = {
-  google: {
-    labelKey: "auth.signInWithGoogle",
-    icon: <GoogleIcon />,
-  },
-};
