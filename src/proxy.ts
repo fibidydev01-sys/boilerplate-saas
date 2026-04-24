@@ -1,59 +1,69 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/core/lib/supabase/proxy";
 import { appConfig } from "@/config";
-import { ROUTES } from "@/core/constants";
+import { isPublicRoute, ROUTES } from "@/core/constants";
 
 /**
- * ⚠️  FILE INI REPLACE `src/proxy.ts` KAMU YANG LAMA.
+ * Proxy (Next.js middleware).
  *
- * Perubahan:
- *   + Tambah `/api/auth/confirm` ke publicRoutes (email OTP verifier)
- *   + Tambah `/api/auth/hooks/send-email` ke publicRoutes (Supabase webhook)
- *   Logic lainnya tidak berubah.
+ * Three-phase routing decision:
  *
- * Public routes = accessible tanpa auth session.
+ *   1. Marketing root ("/") redirect for LOGGED-IN users:
+ *      If a user is authenticated and lands on "/", bounce them to the
+ *      post-login destination (dashboard / admin / role-specific target).
+ *      Landing page is for unauthenticated prospects.
  *
- * NOTE: `/reset-password` masuk public karena user akses halaman ini via
- * magic link SEBELUM session terbentuk sepenuhnya (link dari email dibuka
- * di browser yang belum login).
+ *   2. Public routes (landing, pricing, legal, auth pages, etc.):
+ *      Refresh Supabase session (so logged-in users still see their
+ *      session-aware header) but allow the request through.
  *
- * NOTE: `/api/auth/confirm` + `/api/auth/hooks/send-email` harus public.
- * Confirm: user belum punya session sampai verifyOtp sukses.
- * Hook: dipanggil Supabase service-side, bukan pake user session.
+ *   3. Protected routes:
+ *      Require an authenticated user. Unauthenticated users get redirected
+ *      to /login with a returnTo param preserving their deep link.
+ *
+ * NOTE: `/reset-password` is public because users land there via magic link
+ * BEFORE a session fully forms.
+ *
+ * NOTE: `/api/auth/confirm` and `/api/auth/hooks/send-email` are public.
+ * Confirm: user has no session until verifyOtp succeeds.
+ * Hook: called server-side by Supabase, not via a user session.
  */
-const publicRoutes = [
-  ROUTES.LOGIN,
-  ROUTES.REGISTER,
-  ROUTES.FORGOT_PASSWORD,
-  ROUTES.RESET_PASSWORD,
-  "/api/auth/callback",
-  "/api/auth/confirm",
-  "/api/auth/hooks/send-email",
-];
-
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow public routes
-  if (publicRoutes.some((route) => pathname.startsWith(route))) {
-    const { supabaseResponse } = await updateSession(request);
+  // Phase 0: Refresh session for every request we're handling.
+  // This keeps cookies fresh even for public pages.
+  const { supabaseResponse, user } = await updateSession(request);
+
+  // Phase 1: Logged-in user hitting "/" → bounce to dashboard.
+  // Respects appConfig.auth.postLoginRedirect (currently "/dashboard").
+  if (pathname === ROUTES.HOME && user) {
+    const dashboardUrl = new URL(
+      appConfig.auth.postLoginRedirect,
+      request.url
+    );
+    return NextResponse.redirect(dashboardUrl);
+  }
+
+  // Phase 2: Public routes — allow through.
+  if (isPublicRoute(pathname)) {
     return supabaseResponse;
   }
 
-  // Check authentication (silent refresh di dalam updateSession)
-  const { supabaseResponse, user } = await updateSession(request);
-
-  // Redirect to login if not authenticated — set returnTo untuk deep-link
+  // Phase 3: Protected routes — require auth.
   if (!user) {
     const loginUrl = new URL(appConfig.auth.postLogoutRedirect, request.url);
 
-    // Jangan set returnTo kalau root atau target login itu sendiri
+    // Preserve deep-link via returnTo (skip for trivial targets)
     if (
       pathname &&
-      pathname !== "/" &&
+      pathname !== ROUTES.HOME &&
       pathname !== appConfig.auth.postLogoutRedirect
     ) {
-      loginUrl.searchParams.set("returnTo", pathname + request.nextUrl.search);
+      loginUrl.searchParams.set(
+        "returnTo",
+        pathname + request.nextUrl.search
+      );
     }
 
     return NextResponse.redirect(loginUrl);
@@ -68,8 +78,8 @@ export const config = {
      * Match all request paths except:
      * - _next/static (static files)
      * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
+     * - favicon.ico
+     * - image files in public folder
      */
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],

@@ -4,6 +4,11 @@
 # Run from : client root (where src/ lives)
 # Output   : collections/COLLECT-<timestamp>.txt
 # Skipped  : src/components/ui/  |  public/  |  *.sql  |  .gitkeep
+# ----------------------------------------------------------------
+# v2 CHANGES:
+#   + MARKETING bundle (isolated)        : app/(marketing)/ + modules/landing/
+#   + AUTH+COMMERCE bundle (merged)      : core/auth/* + modules/commerce/
+#   = Total layers reduced from 23 → 18
 # ================================================================
 
 SRC="./src"
@@ -15,6 +20,8 @@ BOLD='\033[1m'
 CYAN='\033[0;36m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+MAGENTA='\033[0;35m'
+BLUE='\033[0;34m'
 RED='\033[0;31m'
 DIM='\033[2m'
 RESET='\033[0m'
@@ -22,60 +29,63 @@ RESET='\033[0m'
 # ── Menu ──────────────────────────────────────────────────────────
 echo ""
 echo -e "${BOLD}╔══════════════════════════════════════════════════════╗${RESET}"
-echo -e "${BOLD}║         FILE COLLECTOR — CLIENT-SERVER               ║${RESET}"
+echo -e "${BOLD}║         FILE COLLECTOR — CLIENT-SERVER  (v2)         ║${RESET}"
 echo -e "${BOLD}╠══════════════════════════════════════════════════════╣${RESET}"
 echo -e "${BOLD}║${RESET}  ${DIM}── src/ root ─────────────────────────────────────${RESET}  ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}  ${CYAN} 1.${RESET}  src/ root ${DIM}(proxy.ts)${RESET}                          ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}                                                      ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}  ${DIM}── app/ ──────────────────────────────────────────${RESET}  ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}  ${CYAN} 2.${RESET}  app/ root ${DIM}(layout · page · manifest · css)${RESET}   ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}  ${CYAN} 2.${RESET}  app/ root ${DIM}(layout · manifest · globals.css)${RESET}  ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}  ${CYAN} 3.${RESET}  app/(auth)/                                   ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}  ${CYAN} 4.${RESET}  app/(dashboard)/                              ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}       ${DIM}admin · customers · dashboard · orders       ${RESET}  ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}       ${DIM}overview · products · profile · settings     ${RESET}  ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}       ${DIM}subscriptions · settings/webhooks            ${RESET}  ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}  ${CYAN} 5.${RESET}  app/api/                                      ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}       ${DIM}auth/callback                                ${RESET}  ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}       ${DIM}auth/callback · confirm · hooks/send-email   ${RESET}  ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}       ${DIM}commerce/checkout · credentials · customers  ${RESET}  ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}       ${DIM}commerce/orders · orders/[id]                ${RESET}  ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}       ${DIM}commerce/products · subscriptions · subs/[id]${RESET}  ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}       ${DIM}commerce/webhooks/[token] · webhooks/config  ${RESET}  ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}       ${DIM}commerce/orders · products · subscriptions   ${RESET}  ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}       ${DIM}commerce/webhooks                            ${RESET}  ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}                                                      ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}  ${DIM}── config/ ───────────────────────────────────────${RESET}  ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}  ${CYAN} 6.${RESET}  config/                                       ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}                                                      ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}  ${DIM}── core/ ─────────────────────────────────────────${RESET}  ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}  ${CYAN} 7.${RESET}  core/ root ${DIM}(index.ts)${RESET}                       ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}  ${CYAN} 8.${RESET}  core/auth/ root ${DIM}(index.ts · provider.tsx)${RESET}   ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}  ${CYAN} 9.${RESET}  core/auth/components/                         ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}  ${CYAN}10.${RESET}  core/auth/hooks/                              ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}  ${CYAN}11.${RESET}  core/auth/lib/                                ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}  ${CYAN}12.${RESET}  core/auth/services/                           ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}  ${CYAN}13.${RESET}  core/auth/store/                              ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}  ${CYAN}14.${RESET}  core/components/                              ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}  ${CYAN}15.${RESET}  core/constants/                               ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}  ${CYAN}16.${RESET}  core/i18n/ ${DIM}(ts + json locales)${RESET}             ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}  ${CYAN}17.${RESET}  core/layout/                                  ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}  ${CYAN}18.${RESET}  core/lib/ ${DIM}(supabase/ · encryption · request)${RESET}${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}  ${CYAN} 8.${RESET}  core/components/                              ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}  ${CYAN} 9.${RESET}  core/constants/                               ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}  ${CYAN}10.${RESET}  core/i18n/ ${DIM}(ts + json locales)${RESET}             ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}  ${CYAN}11.${RESET}  core/layout/                                  ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}  ${CYAN}12.${RESET}  core/lib/ ${DIM}(supabase/ · encryption · request)${RESET}${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}       ${DIM}utils · validators · service-role            ${RESET}  ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}  ${CYAN}19.${RESET}  core/types/                                   ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}  ${CYAN}13.${RESET}  core/types/                                   ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}                                                      ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}  ${DIM}── modules/ ──────────────────────────────────────${RESET}  ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}  ${CYAN}20.${RESET}  modules/ ${DIM}(non-commerce)${RESET}                     ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}       ${DIM}admin · blog · chat · forum · landing        ${RESET}  ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}       ${DIM}project · saas                               ${RESET}  ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}  ${CYAN}21.${RESET}  modules/commerce/                             ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}       ${DIM}components · lib · services · types          ${RESET}  ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}  ${DIM}── BUNDLES ───────────────────────────────────────${RESET}  ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}  ${MAGENTA}14.${RESET}  ${MAGENTA}AUTH + COMMERCE BUNDLE${RESET}                      ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}       ${DIM}core/auth/ (root · components · hooks       ${RESET}  ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}       ${DIM}           lib · services · store)          ${RESET}  ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}       ${DIM}modules/commerce/ (components · lib         ${RESET}  ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}       ${DIM}                  services · types)         ${RESET}  ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}                                                      ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}  ${BLUE}15.${RESET}  ${BLUE}MARKETING BUNDLE (isolated)${RESET}                 ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}       ${DIM}app/(marketing)/ (home · pricing · showcase ${RESET}  ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}       ${DIM}                  legal/*)                  ${RESET}  ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}       ${DIM}modules/landing/ (components · content      ${RESET}  ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}       ${DIM}                  lib · types · config)     ${RESET}  ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}                                                      ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}  ${DIM}── other modules ─────────────────────────────────${RESET}  ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}  ${CYAN}16.${RESET}  modules/ ${DIM}(non-marketing, non-commerce)${RESET}       ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}       ${DIM}admin · blog · chat · forum · project · saas${RESET}  ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}                                                      ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}  ${DIM}── shared/ ───────────────────────────────────────${RESET}  ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}  ${CYAN}22.${RESET}  shared/                                       ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}  ${CYAN}17.${RESET}  shared/                                       ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}       ${DIM}email · file-upload · notifications          ${RESET}  ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}       ${DIM}payment · search                             ${RESET}  ${BOLD}║${RESET}"
 echo -e "${BOLD}║${RESET}                                                      ${BOLD}║${RESET}"
-echo -e "${BOLD}║${RESET}  ${GREEN}23.${RESET}  ${GREEN}ALL LAYERS${RESET}                                  ${BOLD}║${RESET}"
+echo -e "${BOLD}║${RESET}  ${GREEN}18.${RESET}  ${GREEN}ALL LAYERS${RESET}                                  ${BOLD}║${RESET}"
 echo -e "${BOLD}╚══════════════════════════════════════════════════════╝${RESET}"
 echo ""
-echo -e "${YELLOW}Pilih layer (contoh: 5 atau 4 5 21 atau 23):${RESET} "
+echo -e "${YELLOW}Pilih layer (contoh: 5 atau 4 5 14 atau 18):${RESET} "
 read -r INPUT
 
 # ── Init output file ──────────────────────────────────────────────
@@ -87,7 +97,7 @@ TOTAL=0
 
 {
   echo "################################################################"
-  echo "##  BOILERPLATE CLIENT-SERVER — SOURCE COLLECTION"
+  echo "##  BOILERPLATE CLIENT-SERVER — SOURCE COLLECTION (v2)"
   echo "##  Generated : $(date '+%Y-%m-%d %H:%M:%S')"
   echo "##  Selection : $INPUT"
   echo "##  Skipped   : src/components/ui/  |  public/  |  *.sql  |  .gitkeep"
@@ -106,6 +116,19 @@ sec() {
     echo "################################################################"
     echo "##  $label"
     echo "################################################################"
+    echo ""
+  } >> "$FILE"
+}
+
+# Sub-section header (for bundles)
+subsec() {
+  local label="$1"
+  echo -e "  ${DIM}└── $label${RESET}"
+  {
+    echo ""
+    echo "# ─────────────────────────────────────────────────────"
+    echo "#   $label"
+    echo "# ─────────────────────────────────────────────────────"
     echo ""
   } >> "$FILE"
 }
@@ -200,6 +223,48 @@ collect_dir() {
   done < <("${find_cmd[@]}" -print0 | sort -z)
 }
 
+# collect_sub <label> <dir> [mode]
+# Same as collect_dir but uses subsec() for bundle sub-groupings.
+collect_sub() {
+  local label="$1"
+  local dir="$2"
+  local mode="${3:-ts_tsx}"
+
+  subsec "$label"
+
+  if [ ! -d "$dir" ]; then
+    echo -e "    ${RED}⚠ DIR NOT FOUND: $dir${RESET}"
+    return
+  fi
+
+  local find_cmd=()
+  case "$mode" in
+    root_only)
+      find_cmd=(find "$dir" -maxdepth 1 -type f
+        \( -name "*.ts" -o -name "*.tsx" \)
+        -not -name ".gitkeep")
+      ;;
+    ts_md)
+      find_cmd=(find "$dir" -type f
+        \( -name "*.ts" -o -name "*.tsx" -o -name "*.md" \)
+        -not -path "*/components/ui/*"
+        -not -name ".gitkeep"
+        -not -name "*.sql")
+      ;;
+    *)
+      find_cmd=(find "$dir" -type f
+        \( -name "*.ts" -o -name "*.tsx" \)
+        -not -path "*/components/ui/*"
+        -not -name ".gitkeep"
+        -not -name "*.sql")
+      ;;
+  esac
+
+  while IFS= read -r -d '' f; do
+    cf "$f"
+  done < <("${find_cmd[@]}" -print0 | sort -z)
+}
+
 # ── Layer definitions ─────────────────────────────────────────────
 run_layer() {
   case "$1" in
@@ -212,7 +277,7 @@ run_layer() {
 
     # ── app/ ───────────────────────────────────────────────────
     2)
-      sec "app/ root (layout · page · manifest · globals.css)"
+      sec "app/ root (layout · manifest · globals.css)"
       while IFS= read -r -d '' f; do cf "$f"
       done < <(find "$SRC/app" -maxdepth 1 -type f \( -name "*.ts" -o -name "*.tsx" \) -print0 | sort -z)
       while IFS= read -r -d '' f; do cf "$f"
@@ -227,43 +292,57 @@ run_layer() {
     6)  collect_dir "config/"           "$SRC/config"           ;;
 
     # ── core/ ──────────────────────────────────────────────────
-    7)  collect_dir "core/ root (index.ts)"                     "$SRC/core"                  "root_only" ;;
-    8)  collect_dir "core/auth/ root (index.ts · provider.tsx)" "$SRC/core/auth"             "root_only" ;;
-    9)  collect_dir "core/auth/components/"                     "$SRC/core/auth/components"              ;;
-    10) collect_dir "core/auth/hooks/"                          "$SRC/core/auth/hooks"                   ;;
-    11) collect_dir "core/auth/lib/"                            "$SRC/core/auth/lib"                     ;;
-    12) collect_dir "core/auth/services/"                       "$SRC/core/auth/services"                ;;
-    13) collect_dir "core/auth/store/"                          "$SRC/core/auth/store"                   ;;
-    14) collect_dir "core/components/"                          "$SRC/core/components"                   ;;
-    15) collect_dir "core/constants/"                           "$SRC/core/constants"                    ;;
-    16)
+    7)  collect_dir "core/ root (index.ts)" "$SRC/core" "root_only" ;;
+    8)  collect_dir "core/components/"  "$SRC/core/components"  ;;
+    9)  collect_dir "core/constants/"   "$SRC/core/constants"   ;;
+    10)
         collect_dir "core/i18n/ (ts root)"      "$SRC/core/i18n"         "root_only"
         collect_dir "core/i18n/locales/ (json)" "$SRC/core/i18n/locales" "json"
         ;;
-    17) collect_dir "core/layout/"  "$SRC/core/layout"  ;;
-    18) collect_dir "core/lib/"     "$SRC/core/lib"     ;;
-    19) collect_dir "core/types/"   "$SRC/core/types"   ;;
+    11) collect_dir "core/layout/"  "$SRC/core/layout"  ;;
+    12) collect_dir "core/lib/"     "$SRC/core/lib"     ;;
+    13) collect_dir "core/types/"   "$SRC/core/types"   ;;
 
-    # ── modules/ ───────────────────────────────────────────────
-    # Layer 20: semua modules kecuali commerce (dipisah agar granular)
-    20)
-      for mod in admin blog chat forum landing project saas; do
-        collect_dir "modules/$mod/" "$SRC/modules/$mod" "ts_md"
+    # ── BUNDLES ────────────────────────────────────────────────
+    # Layer 14: AUTH + COMMERCE bundle
+    14)
+      sec "AUTH + COMMERCE BUNDLE"
+      collect_sub "core/auth/ root (index.ts · provider.tsx)" "$SRC/core/auth"             "root_only"
+      collect_sub "core/auth/components/"                     "$SRC/core/auth/components"
+      collect_sub "core/auth/hooks/"                          "$SRC/core/auth/hooks"
+      collect_sub "core/auth/lib/"                            "$SRC/core/auth/lib"
+      collect_sub "core/auth/services/"                       "$SRC/core/auth/services"
+      collect_sub "core/auth/store/"                          "$SRC/core/auth/store"
+      collect_sub "modules/commerce/ (all)"                   "$SRC/modules/commerce"      "ts_md"
+      ;;
+
+    # Layer 15: MARKETING bundle (ISOLATED)
+    # Intentionally covers BOTH app-level marketing routes AND the
+    # modules/landing/ module in a single collect call.
+    15)
+      sec "MARKETING BUNDLE (isolated)"
+      collect_sub "app/(marketing)/ (routes + layouts)" "$SRC/app/(marketing)" "ts_tsx"
+      collect_sub "modules/landing/ (components + content + lib + types)" "$SRC/modules/landing" "ts_md"
+      ;;
+
+    # ── Other modules (excluding marketing + commerce) ─────────
+    16)
+      sec "modules/ (non-marketing, non-commerce)"
+      for mod in admin blog chat forum project saas; do
+        collect_sub "modules/$mod/" "$SRC/modules/$mod" "ts_md"
       done
       ;;
-    # Layer 21: commerce sendiri (banyak file — components, lib, services)
-    21) collect_dir "modules/commerce/" "$SRC/modules/commerce" "ts_md" ;;
 
     # ── shared/ ────────────────────────────────────────────────
-    22) collect_dir "shared/" "$SRC/shared" "ts_md" ;;
+    17) collect_dir "shared/" "$SRC/shared" "ts_md" ;;
 
     *)  echo -e "  ${RED}⚠ Pilihan tidak valid: $1${RESET}" ;;
   esac
 }
 
 # ── Execute ───────────────────────────────────────────────────────
-if echo "$INPUT" | grep -qw "23"; then
-  for i in $(seq 1 22); do
+if echo "$INPUT" | grep -qw "18"; then
+  for i in $(seq 1 17); do
     run_layer "$i"
   done
 else

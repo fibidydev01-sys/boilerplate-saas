@@ -1,9 +1,11 @@
 -- =====================================================================
---  NUCLEAR SETUP — Phase 0 + 1 + 2 (FULL RESET, ALL-IN-ONE)
+--  SETUP.SQL — Phase 0 + 1 + 2 FINAL (FULL RESET, ALL-IN-ONE)
 -- =====================================================================
 --
 --  File ini adalah SINGLE SOURCE OF TRUTH untuk schema database.
 --  Jalanin sekali, semua tabel + trigger + RLS + storage bucket ready.
+--
+--  Status pengembangan: 🔒 FINAL di Phase 2. Tidak ada Phase 3.
 --
 --  Scope:
 --    SECTION A. AUTH FOUNDATION                  (Phase 0 + 1)
@@ -26,10 +28,23 @@
 --    SECTION D. BACKFILL & SANITY CHECK
 --
 -- ---------------------------------------------------------------------
+--  CATATAN: AUTH EMAIL MODULE — STATELESS (NO DB SCHEMA)
+--
+--  Phase 2 juga include custom auth email via Resend + Supabase Send
+--  Email Hook. Module ini STATELESS — gak butuh table di DB.
+--
+--  Supabase yang handle token generation/expiry di auth.users (sudah
+--  managed). Kita cuma render template + kirim via Resend lewat hook
+--  endpoint di /api/auth/hooks/send-email.
+--
+--  Setup Resend + Hook di-handle via Supabase Dashboard + env vars,
+--  bukan SQL. Lihat instruksi di akhir file ini (D.2 output).
+--
+-- ---------------------------------------------------------------------
 --  FILOSOFI:
---    Phase 2 = thin wrapper ke Lemon Squeezy.
---    Semua engine (analytics, receipt, customer portal) delegasi ke LS.
---    Tabel commerce_* cuma buat CRUD display + sync state lewat webhook.
+--    Phase 2 = thin wrapper ke Lemon Squeezy + Resend.
+--    Semua engine (analytics, receipt, customer portal, email delivery)
+--    delegasi ke service eksternal. Boilerplate cuma state sync + UI.
 --
 -- ---------------------------------------------------------------------
 --  ⚠️  PERINGATAN:
@@ -52,7 +67,7 @@
 --  Cara pakai:
 --    1. Supabase Dashboard → SQL Editor → New query
 --    2. Paste seluruh isi file ini → Run
---    3. Lihat pesan "NUCLEAR SETUP COMPLETE" di akhir output
+--    3. Lihat pesan "SETUP COMPLETE" di akhir output
 --    4. Lanjut: node scripts/seed.js
 --
 --  Setelah jalan, regenerate types:
@@ -942,7 +957,7 @@ WHERE p.id IS NULL
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------------
--- D.2  Sanity check
+-- D.2  Sanity check + Next Steps (Phase 2 FINAL)
 -- ---------------------------------------------------------------------
 DO $$
 DECLARE
@@ -971,7 +986,7 @@ BEGIN
     WHERE role IN ('super_admin', 'admin') AND is_active = true;
 
   RAISE NOTICE '====================================================';
-  RAISE NOTICE '  NUCLEAR SETUP COMPLETE — PHASE 0 + 1 + 2';
+  RAISE NOTICE '  SETUP COMPLETE — PHASE 0 + 1 + 2 (FINAL)';
   RAISE NOTICE '====================================================';
   RAISE NOTICE '  SECTION A — Auth Foundation (Phase 0+1)';
   RAISE NOTICE '    user_profiles              : % rows', profile_count;
@@ -989,6 +1004,10 @@ BEGIN
   RAISE NOTICE '    commerce_orders            : % rows (reset)', orders_count;
   RAISE NOTICE '    commerce_subscriptions     : % rows (reset)', subscriptions_count;
   RAISE NOTICE '    commerce_customers         : % rows (reset)', customers_count;
+  RAISE NOTICE '';
+  RAISE NOTICE '  AUTH EMAIL MODULE (Phase 2)';
+  RAISE NOTICE '    Stateless — no DB schema needed ✓';
+  RAISE NOTICE '    Setup via Supabase Dashboard + env vars (see below)';
   RAISE NOTICE '====================================================';
   IF admin_count = 0 THEN
     RAISE NOTICE '  ⚠️  Belum ada admin user!';
@@ -999,22 +1018,72 @@ BEGIN
     RAISE NOTICE '       WHERE email=''you@example.com'';';
     RAISE NOTICE '====================================================';
   END IF;
-  RAISE NOTICE '  Next steps:';
-  RAISE NOTICE '    1. Seed users (recommended):';
-  RAISE NOTICE '         node scripts/seed.js';
   RAISE NOTICE '';
-  RAISE NOTICE '    2. Set ENCRYPTION_KEY di .env.local:';
-  RAISE NOTICE '         node -e "console.log(require(''crypto'')';
-  RAISE NOTICE '           .randomBytes(32).toString(''base64''))"';
+  RAISE NOTICE '  NEXT STEPS — PHASE 2 FINAL CHECKLIST';
+  RAISE NOTICE '====================================================';
   RAISE NOTICE '';
-  RAISE NOTICE '    3. Regenerate TS types:';
-  RAISE NOTICE '         npx supabase gen types typescript \';
-  RAISE NOTICE '           --project-id <ID> > src/core/types/database.ts';
+  RAISE NOTICE '  [1] Seed users (recommended):';
+  RAISE NOTICE '      node scripts/seed.js';
   RAISE NOTICE '';
-  RAISE NOTICE '    4. Configure Supabase Dashboard:';
-  RAISE NOTICE '         Auth → Providers → Email → Confirm email:';
-  RAISE NOTICE '           match dengan appConfig.auth.requireEmailVerification';
-  RAISE NOTICE '         Auth → URL Configuration → Redirect URLs:';
-  RAISE NOTICE '           tambah /api/auth/callback dan /reset-password';
+  RAISE NOTICE '  [2] Generate ENCRYPTION_KEY (buat commerce credential):';
+  RAISE NOTICE '      node -e "console.log(require(''crypto'')';
+  RAISE NOTICE '        .randomBytes(32).toString(''base64''))"';
+  RAISE NOTICE '      Simpan ke .env.local sebagai ENCRYPTION_KEY';
+  RAISE NOTICE '      ⚠️  BACKUP ke password manager — kehilangan key =';
+  RAISE NOTICE '         kehilangan semua encrypted credential!';
+  RAISE NOTICE '';
+  RAISE NOTICE '  [3] Regenerate TS types:';
+  RAISE NOTICE '      npx supabase gen types typescript \';
+  RAISE NOTICE '        --project-id <ID> > src/core/types/database.ts';
+  RAISE NOTICE '';
+  RAISE NOTICE '  [4] Supabase Auth Config:';
+  RAISE NOTICE '      a. Auth → Providers → Email';
+  RAISE NOTICE '         └─ Confirm email: match';
+  RAISE NOTICE '            appConfig.auth.requireEmailVerification';
+  RAISE NOTICE '';
+  RAISE NOTICE '      b. Auth → URL Configuration → Redirect URLs:';
+  RAISE NOTICE '         └─ {APP_URL}/api/auth/callback    (OAuth)';
+  RAISE NOTICE '         └─ {APP_URL}/api/auth/confirm     (Email OTP)';
+  RAISE NOTICE '         └─ {APP_URL}/reset-password';
+  RAISE NOTICE '         └─ {APP_URL}/**                   (wildcard)';
+  RAISE NOTICE '';
+  RAISE NOTICE '      c. Auth → Providers → Google (optional):';
+  RAISE NOTICE '         └─ Enable + set Client ID/Secret dari';
+  RAISE NOTICE '            Google Cloud Console';
+  RAISE NOTICE '';
+  RAISE NOTICE '  [5] Setup Resend (untuk auth email):';
+  RAISE NOTICE '      a. Daftar di resend.com + verify domain';
+  RAISE NOTICE '         (DKIM + SPF DNS records)';
+  RAISE NOTICE '      b. Generate API key → simpan sebagai';
+  RAISE NOTICE '         RESEND_API_KEY di .env.local';
+  RAISE NOTICE '      c. Set sender address:';
+  RAISE NOTICE '         RESEND_FROM_EMAIL=';
+  RAISE NOTICE '           "My App <noreply@yourdomain.com>"';
+  RAISE NOTICE '';
+  RAISE NOTICE '  [6] Register Supabase Send Email Hook:';
+  RAISE NOTICE '      Auth → Hooks → Send Email Hook:';
+  RAISE NOTICE '      a. Toggle Enable';
+  RAISE NOTICE '      b. Type: HTTPS';
+  RAISE NOTICE '      c. URL: {APP_URL}/api/auth/hooks/send-email';
+  RAISE NOTICE '         (Dev: pakai ngrok tunnel)';
+  RAISE NOTICE '      d. Copy generated secret (format: v1,whsec_xxx)';
+  RAISE NOTICE '         → simpan sebagai SEND_EMAIL_HOOK_SECRET';
+  RAISE NOTICE '';
+  RAISE NOTICE '      ⚠️  Setelah hook enabled, Supabase gak pake';
+  RAISE NOTICE '         default SMTP lagi. Semua auth email via hook';
+  RAISE NOTICE '         → Resend.';
+  RAISE NOTICE '';
+  RAISE NOTICE '  [7] Install email dependencies (kalau belum):';
+  RAISE NOTICE '      pnpm add resend @react-email/components \';
+  RAISE NOTICE '              @react-email/render standardwebhooks';
+  RAISE NOTICE '      pnpm add -D react-email';
+  RAISE NOTICE '';
+  RAISE NOTICE '  [8] Commerce setup (per-user, NOT deploy step):';
+  RAISE NOTICE '      User generate LS credential via UI di';
+  RAISE NOTICE '      /settings/integrations + webhook config di';
+  RAISE NOTICE '      /settings/webhooks.';
+  RAISE NOTICE '';
+  RAISE NOTICE '====================================================';
+  RAISE NOTICE '  🔒 PHASE 2 = FINAL. No Phase 3 planned.';
   RAISE NOTICE '====================================================';
 END $$;

@@ -1,554 +1,238 @@
-# 🚀 SETUP GUIDE
+# 
+> **Panduan operasional lengkap untuk deploy & jalanin boilerplate ini.**
+> Dokumen ini di luar kode — cover semua aspek non-coding biar project bisa running di local development sampai production.
+>
+> **Status pengembangan:** 🔒 **FINAL di Phase 2.** Tidak ada Phase 3.
+---
 
-Panduan lengkap setup boilerplate ini dari nol sampai running. **Baca pelan-pelan, jangan di-skim.** 90% masalah setup muncul karena skip satu langkah kecil.
+## 📑 Daftar Isi
 
-> 💡 **Target audience:** developer yang baru pertama kali pakai boilerplate ini. Gak perlu expert Next.js/Supabase — cukup ngerti command line dasar.
+1. [Prerequisites](#1-prerequisites)
+2. [Setup Supabase Project](#2-setup-supabase-project)
+3. [Setup Resend (Email Delivery)](#3-setup-resend-email-delivery)
+4. [Local Development Setup](#4-local-development-setup)
+5. [Deploy ke Production (Vercel)](#5-deploy-ke-production-vercel)
+6. [Deploy Alternatif (Non-Vercel)](#6-deploy-alternatif-non-vercel)
+7. [Post-Deploy Verification](#7-post-deploy-verification)
+8. [Operational Tasks](#8-operational-tasks)
+9. [Troubleshooting](#9-troubleshooting)
+10. [Environment Variables Reference](#10-environment-variables-reference)
 
 ---
 
-## 📋 Daftar Isi
+## 1. Prerequisites
 
-- [Overview: Apa yang kita bikin?](#overview-apa-yang-kita-bikin)
-- [Prerequisites (yang harus ada sebelum mulai)](#prerequisites)
-- [Bagian 1 — Setup Local Project](#bagian-1--setup-local-project)
-- [Bagian 2 — Setup Supabase Project](#bagian-2--setup-supabase-project)
-- [Bagian 3 — Environment Variables](#bagian-3--environment-variables)
-- [Bagian 4 — Setup Database (SQL)](#bagian-4--setup-database-sql)
-- [Bagian 5 — Setup Auth Providers](#bagian-5--setup-auth-providers)
-  - [5A — Email/Password](#5a--emailpassword-default-sudah-aktif)
-  - [5B — Google OAuth](#5b--google-oauth)
-  - [5C — Magic Link](#5c--magic-link-email-otp)
-- [Bagian 6 — Redirect URLs (WAJIB, sering terlupa)](#bagian-6--redirect-urls-wajib-sering-terlupa)
-- [Bagian 7 — SMTP (Email Delivery)](#bagian-7--smtp-email-delivery)
-- [Bagian 8 — Seed User (Admin Pertama)](#bagian-8--seed-user-admin-pertama)
-- [Bagian 9 — Generate TypeScript Types](#bagian-9--generate-typescript-types)
-- [Bagian 10 — Customize Branding & Config](#bagian-10--customize-branding--config)
-- [Bagian 11 — Jalanin App!](#bagian-11--jalanin-app)
-- [✅ Verification Checklist](#-verification-checklist)
-- [🆘 Troubleshooting](#-troubleshooting)
-- [📚 Next Steps](#-next-steps)
+Tools & accounts yang wajib ada sebelum mulai:
 
----
+### 1.1 Software
 
-## Overview: Apa yang kita bikin?
+| Tool | Versi minimum | Cek versi | Download |
+|---|---|---|---|
+| Node.js | 20.x LTS | `node -v` | [nodejs.org](https://nodejs.org) |
+| pnpm | 9.x (recommended) | `pnpm -v` | `npm i -g pnpm` |
+| Git | 2.30+ | `git --version` | [git-scm.com](https://git-scm.com) |
 
-Boilerplate ini adalah **foundation untuk aplikasi web modern** dengan:
-
-- ⚡ **Next.js 15** (App Router) + React 19
-- 🔐 **Supabase Auth** (Email, Google OAuth, Magic Link)
-- 🎭 **Role-based Access Control** (5 role + permission matrix wildcard)
-- 🎨 **Tailwind v4** + **shadcn/ui** components
-- 🌍 **i18n** built-in (Indonesia & English)
-- 🧱 **8 Module system** (Admin, SaaS, Commerce, Blog, dll — toggle on/off)
-- 📦 **Config-driven** — ganti `.env` = ganti identitas aplikasi, zero code change
-- 💳 **Stripe-ready** (webhook idempotency sudah di-handle)
-
-**Filosofi:** 1 boilerplate, infinite use cases. Cukup toggle module yang dibutuhin, dan boom — jadi aplikasi siap deploy.
-
----
-
-## Prerequisites
-
-Pastikan semua ini sudah ada **sebelum mulai**:
-
-### Software
-
-| Tool | Versi minimum | Cek dengan |
-|------|---------------|------------|
-| Node.js | 20.x atau 22.x LTS | `node --version` |
-| npm / pnpm / bun | Latest | `npm --version` |
-| Git | Latest | `git --version` |
-| Code editor | VS Code (recommended) | — |
-
-> ⚠️ **Jangan pakai Node 18** — beberapa dependency butuh Node 20+.
-
-### Akun
-
-- **Supabase** — sign up gratis di [supabase.com](https://supabase.com) (free tier cukup untuk dev)
-- **Google Cloud Console** (optional, kalau mau enable Google OAuth) — [console.cloud.google.com](https://console.cloud.google.com)
-- **Resend** atau email provider lain (optional, untuk production SMTP)
-
-### Knowledge
-
-- Basic command line (cd, ls, npm install)
-- Basic Git (clone, commit, push)
-- Familiar dengan React / Next.js (helpful tapi gak wajib)
-
-Kalau semua checked ✅, lanjut ke Bagian 1.
-
----
-
-## Bagian 1 — Setup Local Project
-
-### 1.1 Clone repository
-
+**Verifikasi cepat:**
 ```bash
-git clone <repository-url> my-app
-cd my-app
+node -v     # harus v20.x.x atau lebih tinggi
+pnpm -v     # harus 9.x.x
+git --version
 ```
 
-Ganti `<repository-url>` dengan URL repo boilerplate kamu.
+Kalau pakai Windows, disarankan install via [nvm-windows](https://github.com/coreybutler/nvm-windows) biar bisa switch versi. Di macOS/Linux pakai [nvm](https://github.com/nvm-sh/nvm).
 
-### 1.2 Install dependencies
+> **Catatan:** Boilerplate pake `pnpm` (bukan `npm`) — workspaces & dep resolution lebih efisien. `npm` juga jalan tapi gak tested.
 
-Pilih satu package manager (pakai yang sama konsisten):
+### 1.2 Accounts
 
-```bash
-# Pakai npm
-npm install
+Wajib daftar (semua free untuk development):
 
-# ATAU pakai pnpm (lebih cepat, recommended)
-pnpm install
+| Service | Guna | Link daftar |
+|---|---|---|
+| **Supabase** | Database + Auth + Storage | [supabase.com/dashboard](https://supabase.com/dashboard) |
+| **Resend** | Transactional email (auth email) | [resend.com](https://resend.com) |
+| **Vercel** | Hosting Next.js (primary) | [vercel.com/signup](https://vercel.com/signup) |
+| **GitHub** | Version control + deploy trigger | [github.com/signup](https://github.com/signup) |
 
-# ATAU pakai bun (tercepat)
-bun install
-```
+Optional (untuk fitur tertentu):
 
-> 💡 **Tips:** Kalau muncul warning soal peer dependency, biasanya aman di-ignore. Kalau error `EACCES`, jangan pakai `sudo` — fix permission npm global: [docs.npmjs.com](https://docs.npmjs.com/resolving-eacces-permissions-errors-when-installing-packages-globally).
-
-### 1.3 Cek struktur folder
-
-Sekilas, struktur yang penting:
-
-```
-src/
-├── app/              # Next.js App Router (pages)
-├── config/           # ⭐ Otak aplikasi — customize di sini
-│   ├── app.config.ts        # Module toggles, auth, payment, locale
-│   ├── branding.config.ts   # Nama app, logo, warna, meta
-│   └── permissions.config.ts # RBAC matrix
-├── core/             # Auth, i18n, layout, utils (shared)
-├── modules/          # 8 boilerplate modules (admin, saas, dll)
-└── components/ui/    # shadcn/ui components
-```
-
-Selanjutnya kita setup Supabase dulu, baru balik ke config.
+| Service | Kapan perlu | Link |
+|---|---|---|
+| **Google Cloud Console** | Kalau enable Google OAuth | [console.cloud.google.com](https://console.cloud.google.com) |
+| **Lemon Squeezy** | Commerce module (per-user, bukan deploy-level) | [lemonsqueezy.com](https://lemonsqueezy.com) |
+| **ngrok** | Dev testing webhook (Supabase hook + LS webhook) | [ngrok.com](https://ngrok.com) |
 
 ---
 
-## Bagian 2 — Setup Supabase Project
+## 2. Setup Supabase Project
 
-### 2.1 Bikin project baru
+### 2.1 Buat Project Baru
 
 1. Login ke [supabase.com/dashboard](https://supabase.com/dashboard)
 2. Klik **New project**
-3. Isi:
-   - **Name:** nama project kamu (misal `my-app-dev`)
-   - **Database Password:** **GENERATE & SIMPAN** password ini ke password manager. Kalau lupa, gak bisa di-recover (harus reset).
-   - **Region:** pilih yang paling dekat sama user kamu (misal Singapore untuk user Indonesia)
-   - **Pricing Plan:** Free (untuk dev)
-4. Klik **Create new project** → tunggu ~2 menit sampai "Setting up project" selesai.
+3. Isi form:
+   - **Name**: nama project (bebas, misal `my-boilerplate-dev`)
+   - **Database Password**: **generate strong password**, **simpan baik-baik** — ini nggak bisa dilihat lagi, cuma di-reset
+   - **Region**: pilih terdekat ke user mayoritas (untuk Indonesia → **Southeast Asia (Singapore)**)
+   - **Pricing Plan**: Free (cukup untuk dev & small production)
+4. Klik **Create new project** → tunggu 2-3 menit sampai status **Active**
 
-### 2.2 Ambil credentials
+### 2.2 Ambil Credentials
 
-Setelah project ready, kamu butuh 3 value:
+Setelah project active:
 
-1. **Project URL** & **Anon Key**:
-   - Sidebar → **Project Settings** (ikon gear) → **API**
-   - Copy:
-     - `Project URL` (misal `https://abcdefghij.supabase.co`)
-     - `anon` `public` key (JWT panjang — yang public-safe, bukan service_role)
+1. Di sidebar kiri: **Project Settings** (icon gear) → **Data API**
+2. Ada **Project URL** — contoh: `https://xxxxxxxx.supabase.co`
+3. Copy & simpan sebagai `NEXT_PUBLIC_SUPABASE_URL`
+4. Di bagian **Project API keys**:
+   - Copy `anon` `public` key → simpan sebagai `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - Copy `service_role` `secret` key → simpan sebagai `SUPABASE_SERVICE_ROLE_KEY`
+   - ⚠️ **`service_role` key bypass RLS, jangan pernah expose ke browser atau commit ke Git**
 
-2. **Service Role Key** (untuk seed script):
-   - Di halaman yang sama, scroll ke **Project API keys**
-   - Klik **Reveal** di baris `service_role`
-   - Copy key-nya
-   - ⚠️ **JANGAN COMMIT INI KE GIT** — ini bisa bypass semua security. Hanya dipakai di server-side atau local script.
+Ketiga value ini akan dipakai di `.env.local` (local) dan environment variables Vercel (production).
 
-3. **Project Ref** (untuk generate types nanti):
-   - Dari Project URL, ambil subdomain-nya. Misal URL `https://abcdefghij.supabase.co` → project ref-nya `abcdefghij`.
-   - Atau: **Project Settings** → **General** → **Reference ID**.
+### 2.3 Run Database Migration (setup.sql)
 
-**Simpan 3 value ini sementara di notepad** — kita pakai di step berikutnya.
+Ini step kritis — setup semua table, RLS policy, trigger, storage bucket yang dibutuhkan oleh boilerplate.
 
----
+1. Di sidebar Supabase: **SQL Editor** (icon `[/>]`)
+2. Klik **+ New query** (tombol di kanan atas)
+3. **Buka file `supabase/setup.sql`** dari project kamu
+4. Copy **seluruh isi** file tersebut
+5. Paste ke SQL Editor Supabase
+6. Klik **Run** (tombol di kanan bawah, atau `Ctrl+Enter`)
+7. Tunggu ~5-10 detik. Scroll ke bagian bawah output. Harus muncul:
 
-## Bagian 3 — Environment Variables
+   ```
+   NOTICE: ====================================================
+   NOTICE: SETUP COMPLETE
+   NOTICE: ====================================================
+   NOTICE: user_profiles              : 0 rows
+   NOTICE: activity_logs              : 0 rows
+   NOTICE: commerce_credentials       : 0 rows
+   NOTICE: commerce_webhook_configs   : 0 rows
+   NOTICE: commerce_webhook_events    : 0 rows
+   NOTICE: commerce_orders            : 0 rows
+   NOTICE: commerce_subscriptions     : 0 rows
+   NOTICE: commerce_customers         : 0 rows
+   NOTICE: avatars bucket             : ready ✓
+   NOTICE: ====================================================
+   ```
 
-### 3.1 Bikin file `.env.local`
+   Kalau muncul error merah → cek section [Troubleshooting](#9-troubleshooting).
 
-Di root project (sejajar dengan `package.json`), bikin file baru bernama `.env.local`:
+### 2.4 Setup Auth Providers
 
-```bash
-# macOS / Linux
-touch .env.local
+Default cuma email/password aktif. Untuk Google OAuth + Magic Link, ada setup tambahan.
 
-# Windows (PowerShell)
-New-Item .env.local
-```
+#### 2.4.1 Email (default, sudah aktif)
 
-### 3.2 Isi dengan template ini
+1. **Authentication** → **Providers** → **Email** → harus ✅ **Enabled**
+2. **Confirm email** — untuk **dev**: nonaktifkan biar cepet testing. Untuk **production**: aktifkan.
+3. **Secure email change**, **Secure password change** — aktifkan kedua-duanya di production.
 
-Buka `.env.local` di editor, paste template ini, ganti value-nya sama hasil Bagian 2.2:
+#### 2.4.2 Google OAuth
 
-```bash
-# ============================================================
-# SUPABASE (wajib)
-# ============================================================
-NEXT_PUBLIC_SUPABASE_URL=https://abcdefghij.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-
-# ============================================================
-# BRANDING (optional — default ada, ganti sesuai app kamu)
-# ============================================================
-NEXT_PUBLIC_APP_NAME="My App"
-NEXT_PUBLIC_APP_SHORT_NAME="App"
-NEXT_PUBLIC_APP_DESCRIPTION="A modern web application"
-NEXT_PUBLIC_APP_TAGLINE="Welcome"
-NEXT_PUBLIC_APP_PRIMARY_COLOR="#16a34a"
-NEXT_PUBLIC_APP_KEYWORDS="app,web,platform"
-NEXT_PUBLIC_APP_AUTHOR="Your Name"
-NEXT_PUBLIC_APP_CATEGORY="productivity"
-```
-
-> 💡 **Kenapa dua Supabase key?**
-> - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — aman di-expose ke browser, dipakai client-side dengan RLS protection
-> - `SUPABASE_SERVICE_ROLE_KEY` — **bypass RLS**, hanya untuk server/script. TIDAK boleh ke browser.
-
-### 3.3 Pastikan `.env.local` masuk `.gitignore`
-
-Cek file `.gitignore` — harus ada line `.env*.local` atau `.env.local`. Kalau belum, tambahin:
-
-```gitignore
-# env files
-.env*.local
-.env.local
-```
-
-**Commit perubahan `.gitignore` SEBELUM commit `.env.local`** — biar `.env.local` gak ikut ke-push.
-
----
-
-## Bagian 4 — Setup Database (SQL)
-
-Kita punya 2 file SQL yang berbeda tujuan:
-
-| File | Kapan Dipakai | Efek |
-|------|---------------|------|
-| **`setup.sql`** | Setup pertama kali di fresh project, ATAU update ke project existing yang udah ada data | ✅ Non-destructive, aman di-run berkali-kali |
-| **`nuclear-setup.sql`** | Reset total environment dev, atau kalau mau mulai dari nol | ⚠️ **HAPUS SEMUA DATA** di tabel `user_profiles`, `activity_logs`, `stripe_events` |
-
-### 4.1 Pilih file yang tepat
-
-- **Pertama kali setup / fresh Supabase project?** → pakai `setup.sql`
-- **Mau reset total data dev?** → pakai `nuclear-setup.sql`
-- **Ragu-ragu?** → pakai `setup.sql` (aman)
-
-### 4.2 Jalanin SQL
-
-1. Di Supabase Dashboard, buka sidebar → **SQL Editor**
-2. Klik **+ New query**
-3. Buka file `setup.sql` (atau `nuclear-setup.sql`) di editor local, **copy semua isinya**
-4. Paste ke SQL Editor Supabase
-5. Klik tombol **Run** (atau `Ctrl/Cmd + Enter`)
-6. Tunggu beberapa detik, lihat output di bawah
-
-### 4.3 Cek output
-
-Kalau sukses, di output harus muncul:
-
-```
-NOTICE:  ====================================================
-NOTICE:    SETUP COMPLETE
-NOTICE:  ====================================================
-NOTICE:    user_profiles   : 0 rows
-NOTICE:      └─ admins     : 0
-NOTICE:    activity_logs   : 0 rows
-NOTICE:    stripe_events   : 0 rows
-NOTICE:    avatars bucket  : ready ✓
-NOTICE:  ====================================================
-```
-
-Semua 0 itu normal — DB baru emang kosong. Yang penting `avatars bucket: ready ✓`.
-
-### 4.4 Verifikasi visual
-
-1. Sidebar → **Database** → **Tables** → harus muncul: `user_profiles`, `activity_logs`, `stripe_events`
-2. Sidebar → **Storage** → harus muncul bucket `avatars`
-3. Sidebar → **Authentication** → **Policies** → harus ada banyak policy untuk 3 tabel di atas
-
-Kalau ada yang missing, lihat [Troubleshooting](#-troubleshooting).
-
----
-
-## Bagian 5 — Setup Auth Providers
-
-Default-nya cuma Email/Password yang aktif. Untuk Google OAuth + Magic Link, ada setup tambahan.
-
-### 5A — Email/Password (default, sudah aktif)
-
-1. Sidebar → **Authentication** → **Providers**
-2. Cari **Email** → pastikan status **Enabled** ✅
-3. Setting yang perlu diperhatikan:
-   - **Confirm email**
-     - Dev: **nonaktifkan** biar cepet testing
-     - Production: **aktifkan**
-   - **Secure email change** — aktifkan di production
-   - **Secure password change** — aktifkan di production
-4. Klik **Save** kalau ada perubahan
-
-**Udah selesai.** Email/Password siap pakai.
-
----
-
-### 5B — Google OAuth
-
-Skip section ini kalau belum mau enable Google login. Bisa tambah nanti.
-
-#### Step 1: Setup di Google Cloud Console
+**Di Google Cloud Console:**
 
 1. Buka [console.cloud.google.com](https://console.cloud.google.com)
-2. **Create project** (atau pilih existing):
-   - Klik dropdown project di atas → **New Project**
-   - Name: terserah (misal `my-app-auth`)
-   - Klik **Create** → tunggu selesai → pilih project-nya
-3. Sidebar → **APIs & Services** → **OAuth consent screen**
-   - **User Type:** External → **Create**
-   - Isi form:
-     - **App name:** nama aplikasi (tampil di consent dialog "Sign in to [App Name]")
-     - **User support email:** email kamu
-     - **Developer contact:** email kamu
-   - **Save and continue** → skip **Scopes** → **Save and continue** → di **Test users** bisa add email tester kalau masih mode dev → **Save and continue** → **Back to dashboard**
-4. Sidebar → **APIs & Services** → **Credentials**
-   - Klik **+ Create credentials** → **OAuth client ID**
-   - **Application type:** Web application
-   - **Name:** bebas (misal `Supabase Auth`)
-   - **Authorized JavaScript origins** (klik **Add URI** untuk tiap entry):
-     ```
-     http://localhost:3000
-     https://your-production-domain.com
-     ```
-   - **Authorized redirect URIs** (🚨 **INI YANG SERING SALAH**):
-     ```
-     https://<YOUR_PROJECT_REF>.supabase.co/auth/v1/callback
-     ```
-     Ganti `<YOUR_PROJECT_REF>` dengan project ref yang udah kamu simpan di Bagian 2.2. Contoh: `https://abcdefghij.supabase.co/auth/v1/callback`.
-   - Klik **Create**
-   - Muncul modal dengan **Client ID** dan **Client Secret** — **copy dua-duanya, simpan sementara**
+2. **Create project** (atau pilih existing)
+3. Sidebar: **APIs & Services** → **OAuth consent screen**
+   - User Type: **External**
+   - App name: nama app kamu (akan tampil di consent dialog)
+   - User support email: email kamu
+   - Developer contact: email kamu
+   - Save & continue (skip scopes untuk sekarang, Add users test kalau masih dev mode)
+4. Sidebar: **APIs & Services** → **Credentials** → **+ Create credentials** → **OAuth client ID**
+   - Application type: **Web application**
+   - Name: bebas (misal "Supabase Auth")
+   - **Authorized JavaScript origins**: tambah URL local dev **dan** production:
+     - `http://localhost:3000`
+     - `https://your-production-domain.com`
+   - **Authorized redirect URIs**: tambah callback Supabase:
+     - `https://<YOUR_PROJECT_REF>.supabase.co/auth/v1/callback`
+   - Create → muncul modal dengan **Client ID** dan **Client Secret** → copy dua-duanya
 
-#### Step 2: Setup di Supabase
+**Di Supabase Dashboard:**
 
-1. Supabase Dashboard → **Authentication** → **Providers**
-2. Cari **Google** → klik untuk expand
-3. Toggle **Enabled** → ON
-4. Paste:
-   - **Client ID** (dari Google)
-   - **Client Secret** (dari Google)
-5. **Save**
+1. **Authentication** → **Providers** → **Google**
+2. Toggle **Enabled**
+3. Paste **Client ID** dan **Client Secret**
+4. **Save**
 
-#### Step 3: Pastikan provider aktif di boilerplate
+#### 2.4.3 Magic Link (email OTP)
 
-Buka `src/config/app.config.ts`, di bagian `auth.providers` pastikan `"google"` ada:
+Default udah aktif kalau Email provider enabled. Delivery-nya akan via **Supabase Send Email Hook** (kita setup di section 2.6) — jadi template yang dipakai adalah custom template dari boilerplate, bukan default Supabase.
 
-```ts
-providers: ["email", "google", "magic-link"] as const,
-```
+### 2.5 Redirect URLs (WAJIB, sering terlewat)
 
-Kalau mau disable Google nanti, tinggal hapus dari array ini. Boilerplate otomatis hide tombolnya.
+Ini **krusial** — kalau lupa setup, OAuth **akan fail** dengan error "Redirect URL not allowed".
 
----
+1. **Authentication** → **URL Configuration**
+2. **Site URL**: isi URL production kamu (misal `https://your-app.vercel.app`). Ini default redirect kalau nggak di-override.
+3. **Redirect URLs**: tambah **semua** URL callback yang mungkin dipakai (satu per baris):
 
-### 5C — Magic Link (email OTP)
+   ```
+   http://localhost:3000/api/auth/callback
+   http://localhost:3000/api/auth/confirm
+   http://localhost:3000/**
+   https://your-production-domain.com/api/auth/callback
+   https://your-production-domain.com/api/auth/confirm
+   https://your-production-domain.com/**
+   https://*-your-vercel-username.vercel.app/api/auth/callback
+   https://*-your-vercel-username.vercel.app/api/auth/confirm
+   ```
 
-Magic Link = login via link yang dikirim ke email, tanpa password.
+   Penjelasan:
+   - `/api/auth/callback` — OAuth PKCE callback (Google)
+   - `/api/auth/confirm` — Email OTP verification (magic link, signup, recovery)
+   - `/**` — wildcard untuk allow semua path di domain (biar returnTo flow jalan)
+   - `https://*-...vercel.app/**` — wildcard untuk Vercel preview deployments
 
-**Default sudah aktif** kalau Email provider enabled. Yang perlu dipastikan:
-- Redirect URL udah di-setup (Bagian 6, next)
-- Template email (optional customization)
+4. **Save**
 
-**Custom email template (opsional):**
+### 2.6 Setup Supabase Send Email Hook 🔥 **BARU PHASE 2**
 
-1. Supabase Dashboard → **Authentication** → **Email Templates** → **Magic Link**
-2. Customize Subject & Body. Available variables:
-   - `{{ .ConfirmationURL }}` — link magic login
-   - `{{ .Email }}` — email user
-   - `{{ .Data }}` — metadata custom kalau ada
-3. **Save**
+Ini **gantiin default Supabase SMTP** — semua auth email (magic link, recovery, signup, email change) akan di-render pake custom template di boilerplate + dikirim via Resend.
 
-Contoh custom subject: `Login to {{ .SiteURL }}`
+**Hook URL baru bisa di-set setelah deployment** (karena butuh public URL). Untuk **dev testing**, kamu butuh tunnel (ngrok) atau preview deployment.
 
-**Pastikan di `app.config.ts`** provider `"magic-link"` ada di array:
+#### Registrasi Hook
 
-```ts
-providers: ["email", "google", "magic-link"] as const,
-```
-
----
-
-## Bagian 6 — Redirect URLs (WAJIB, sering terlupa)
-
-🚨 **Ini krusial.** Kalau lupa setup, OAuth dan Magic Link akan fail dengan error:
-
-> `Redirect URL not allowed`
-
-### 6.1 Buka konfigurasi
-
-Supabase Dashboard → **Authentication** → **URL Configuration**
-
-### 6.2 Setting yang perlu diisi
-
-**Site URL:**
-- Isi URL production kamu (misal `https://my-app.vercel.app`)
-- Ini default redirect kalau gak di-override
-- Kalau belum deploy, isi `http://localhost:3000` dulu — ganti nanti setelah deploy
-
-**Redirect URLs** (tambah satu per baris, klik **Add URL** untuk tiap entry):
-
-```
-http://localhost:3000/api/auth/callback
-http://localhost:3000/**
-https://your-production-domain.com/api/auth/callback
-https://your-production-domain.com/**
-https://*-your-vercel-username.vercel.app/**
-```
-
-### 6.3 Penjelasan
-
-| URL Pattern | Fungsi |
-|-------------|--------|
-| `/api/auth/callback` | Endpoint tempat Supabase redirect setelah OAuth/Magic Link sukses |
-| `/**` | Wildcard — allow semua path di domain (biar `returnTo` flow jalan) |
-| `https://*-username.vercel.app/**` | Wildcard untuk Vercel preview deployments (tiap PR dapat URL unik) |
-
-### 6.4 Save
-
-Klik **Save**. **Tunggu ~1 menit** propagasi sebelum testing.
-
----
-
-## Bagian 7 — SMTP (Email Delivery)
-
-Default Supabase SMTP punya **limit ~3 email/jam** dan deliverability rendah (banyak masuk spam). Cukup untuk dev, tidak cocok untuk production.
-
-### 7.1 Untuk Development (skip setup)
-
-Default SMTP cukup. Magic link email mungkin masuk **Spam folder** — normal untuk dev.
-
-💡 **Tips dev:** kalau email gak sampe, cek folder Spam/Junk dulu sebelum assume broken.
-
-### 7.2 Untuk Production (wajib setup custom SMTP)
-
-Pilih email provider. Rekomendasi berdasarkan kemudahan:
-
-#### Option A — Resend (termudah, recommended)
-
-1. Daftar di [resend.com](https://resend.com)
-2. **Domains** → **Add Domain** → input domain kamu (misal `yourdomain.com`)
-3. Resend kasih DNS records (SPF, DKIM, DMARC) yang harus kamu tambah di DNS provider (Cloudflare, Namecheap, dll)
-4. Tunggu DNS propagasi (bisa 5 menit – 24 jam), status harus **Verified** ✅
-5. **API Keys** → **Create API Key** → beri nama (misal `supabase-smtp`) → copy key-nya
-6. Kembali ke Supabase: **Project Settings** → **Auth** → scroll ke **SMTP Settings**:
-   - Toggle **Enable Custom SMTP**
-   - **Host:** `smtp.resend.com`
-   - **Port:** `465`
-   - **Username:** `resend`
-   - **Password:** paste API key Resend
-   - **Sender email:** email dari verified domain (misal `no-reply@yourdomain.com`)
-   - **Sender name:** nama aplikasi kamu
+1. **Authentication** → **Hooks** → **Send Email Hook**
+2. Toggle **Enable hook**
+3. **Hook type**: **HTTPS**
+4. **Hook URL**: `{YOUR_APP_URL}/api/auth/hooks/send-email`
+   - **Production:** `https://your-production-domain.com/api/auth/hooks/send-email`
+   - **Dev testing:** `https://abc123.ngrok-free.app/api/auth/hooks/send-email` (ngrok URL)
+   - **Preview:** `https://your-branch-xxxxx.vercel.app/api/auth/hooks/send-email`
+5. **Generate secret** — Supabase generate secret otomatis, copy value-nya (format: `v1,whsec_xxxxxxxxxx`)
+6. Simpan secret sebagai `SEND_EMAIL_HOOK_SECRET` di env vars
 7. **Save**
-8. Test: coba sign up / magic link di app production → cek email masuk inbox (bukan spam)
 
-#### Option B — Provider lain
+> ⚠️ **Setelah hook enabled:** Supabase **gak akan pakai default SMTP** sama sekali. Semua auth email via hook. Kalau hook fail (500 response), Supabase retry exponential, abis itu email gak terkirim.
+>
+> Kalau mau sementara balik ke default SMTP (misal Resend down), **disable hook** → Supabase auto-fallback.
 
-Konsep sama untuk **SendGrid, Mailgun, Postmark, AWS SES**:
-1. Verify domain (DNS records)
-2. Get SMTP credentials
-3. Paste ke Supabase SMTP Settings
+#### Fallback: Custom SMTP (optional, jarang dipakai)
 
-Masing-masing punya dokumentasi specific. Googling `<provider> smtp supabase` akan dapet tutorial step-by-step.
+Kalau kamu prefer pake Supabase SMTP sebagai fallback (bukan via hook), itu setup terpisah di **Project Settings → Auth → SMTP Settings**. Tapi kalau hook udah setup, ini gak perlu — skip aja section ini.
 
----
+### 2.7 Buat Admin User Pertama
 
-## Bagian 8 — Seed User (Admin Pertama)
+Setelah migration jalan, DB masih kosong. Buat admin pertama:
 
-Setelah DB migration jalan, tabel `user_profiles` masih kosong. Kita butuh admin user untuk login dan akses `/admin`.
+#### Step 1: Sign up user via aplikasi
 
-### 8.1 Pilih cara
+Pilih satu cara:
+- **A**: Jalanin app di local (`pnpm dev`), buka `/login`, sign up
+- **B**: Bikin manual via Supabase Dashboard → **Authentication** → **Users** → **Add user** → fill email + password + **Auto confirm email**
 
-| Cara | Kapan Dipakai |
-|------|---------------|
-| **A. Pakai seed script** (recommended) | Setup dev dengan 5 user test untuk semua role |
-| **B. Sign up manual + elevate** | Production atau kalau mau cuma 1 admin custom |
-
-### 8.2 Cara A: Pakai `seed.js`
-
-Seed script kita bikin 5 user — satu per role — untuk testing permission system lengkap.
-
-#### Step 1: Pastikan `seed.js` ada
-
-File-nya di folder `scripts/` (atau tempatkan di mana aja, path bisa disesuaikan). Pastikan `.env.local` kamu punya `SUPABASE_SERVICE_ROLE_KEY`.
-
-#### Step 2: Install `dotenv` (kalau belum)
-
-```bash
-npm install --save-dev dotenv
-# atau
-pnpm add -D dotenv
-```
-
-#### Step 3: Jalanin seed
-
-```bash
-node scripts/seed.js
-```
-
-Output yang diharapkan:
-
-```
-🚀 SEED USERS — Boilerplate
-=============================================
-📋 Target: 5 user
-🎯 Supabase: https://abcdefghij.supabase.co
-
-📝 Super Admin <superadmin@example.com> (super_admin)
-   🔐 Create auth user...
-   ✅ Auth user created: <uuid>
-   👑 Role di-set: super_admin
-   ✅ DONE
-
-... (4 user lagi)
-
-=============================================
-📊 HASIL
-=============================================
-
-✅ Created  : 5
-   ✅ Super Admin <superadmin@example.com> [super_admin]
-   ... dst
-
-=============================================
-🔑 LOGIN CREDENTIALS
-=============================================
-
-👤 Super Admin [super_admin]
-   Email    : superadmin@example.com
-   Password : SuperAdmin@2026
-
-... dst
-```
-
-#### Step 4: Catat credentials
-
-**Default password semua user di seed.js ada di file itu.** Simpan ke password manager atau 1Password dev vault.
-
-⚠️ **GANTI password** setelah login pertama. Atau minimal: edit `seed.js` ganti default password sebelum jalanin.
-
-### 8.3 Cara B: Sign up manual + elevate
-
-Kalau gak mau 5 user, cukup 1 admin:
-
-#### Step 1: Sign up
-
-Pilih salah satu:
-- **Via app:** jalanin `npm run dev` → buka `http://localhost:3000/login` → sign up (kalau provider Email enabled)
-- **Via Supabase Dashboard:** **Authentication** → **Users** → **Add user** → **Create new user** → isi email + password + centang **Auto Confirm Email** → **Create user**
-
-Trigger `handle_new_user()` otomatis bikin row di `user_profiles` dengan role `user`.
+Trigger `handle_new_user()` akan auto-bikin row di `user_profiles` dengan role `user`.
 
 #### Step 2: Elevate ke super_admin
 
-Supabase Dashboard → **SQL Editor** → jalanin:
+Di Supabase **SQL Editor**, run:
 
 ```sql
 UPDATE public.user_profiles
@@ -559,365 +243,1099 @@ WHERE email = 'your-email@example.com';
 SELECT id, email, role, is_active FROM public.user_profiles;
 ```
 
-Harus muncul user kamu dengan `role = 'super_admin'`. Sekarang login → auto redirect ke `/admin`.
+Harus muncul user kamu dengan `role = 'super_admin'`. Sekarang login → akan redirect ke `/admin`.
 
 ---
 
-## Bagian 9 — Generate TypeScript Types
+## 3. Setup Resend (Email Delivery)
 
-Setelah DB schema ready, generate TypeScript types biar TypeScript bisa auto-complete & type-check DB call.
+**Resend** adalah transactional email service yang dipakai boilerplate untuk semua auth email. Default Supabase SMTP punya limit ~3 email/jam dan deliverability rendah — Resend solve ini.
 
-### 9.1 Install Supabase CLI (kalau belum)
+### 3.1 Daftar & Verify Domain
 
-```bash
-# Install sebagai dev dependency project (recommended)
-npm install --save-dev supabase
+1. Daftar di [resend.com](https://resend.com) — free tier: 3,000 email/bulan, 100/hari
+2. **Domains** → **Add Domain** → masukin domain kamu (misal `yourdomain.com`)
+3. Resend generate **DNS records** — kamu harus add ini di DNS provider (Cloudflare, Namecheap, dll):
+   - **SPF record** (TXT)
+   - **DKIM record** (CNAME x3)
+   - **DMARC record** (TXT) — optional tapi recommended
+4. Setelah DNS propagate (biasanya 5-30 menit), click **Verify DNS Records**
+5. Status harus jadi ✅ **Verified** sebelum bisa kirim email
 
-# Atau global
-npm install -g supabase
+> 💡 **Tips:** Kalau belum punya domain sendiri, kamu bisa pake subdomain (misal `mail.yourdomain.com`) — DNS setup-nya sama.
+
+> ⚠️ **Untuk dev:** Resend punya sandbox mode (`onboarding@resend.dev`) — bisa kirim ke email kamu sendiri tanpa verify domain. Cocok buat testing di local, tapi production wajib verify domain sendiri.
+
+### 3.2 Generate API Key
+
+1. Resend Dashboard → **API Keys** → **Create API Key**
+2. **Name**: bebas (misal `my-app-production`)
+3. **Permission**: **Full access** (atau **Sending access** kalau mau tighter)
+4. **Domain**: pilih domain yang udah verified
+5. **Add** → copy API key (format: `re_xxxxxxxxxxxxx`)
+6. Simpan sebagai `RESEND_API_KEY` di env vars
+
+> ⚠️ **API key cuma muncul sekali.** Kalau lupa / hilang, bikin baru.
+
+### 3.3 Tentukan Sender Address
+
+Sender email yang muncul di inbox user. Format: `"Sender Name <email@yourdomain.com>"`.
+
+Contoh:
+```
+RESEND_FROM_EMAIL="Acme Platform <noreply@acme.com>"
+RESEND_FROM_EMAIL="Acme <hello@acme.com>"
 ```
 
-### 9.2 Login (kalau global)
+**Best practices:**
+- Sender name match brand name
+- Email pake `noreply@` atau `hello@` (jangan pake personal email)
+- Domain harus yang udah verified di Resend (otherwise 400 error)
 
-```bash
-npx supabase login
-```
+### 3.4 Test Send
 
-Browser akan kebuka → login ke Supabase → return ke terminal.
-
-### 9.3 Generate types
-
-```bash
-npx supabase gen types typescript \
-  --project-id <YOUR_PROJECT_REF> \
-  > src/core/types/database.ts
-```
-
-Ganti `<YOUR_PROJECT_REF>` dengan project ref kamu (yang di Bagian 2.2).
-
-**Example:**
-
-```bash
-npx supabase gen types typescript \
-  --project-id abcdefghij \
-  > src/core/types/database.ts
-```
-
-File `src/core/types/database.ts` akan ter-overwrite dengan types yang reflect schema DB terbaru.
-
-> 💡 **Kapan perlu re-generate?** Setiap kali ubah schema DB (add column, new table, dll). Bikin habit: setiap habis jalanin migration, generate ulang types.
+Resend punya tombol **Send test email** di dashboard. Bisa kirim dari sender address yang kamu mau → ke email kamu sendiri. Kalau sampe inbox (bukan spam), domain config udah bener.
 
 ---
 
-## Bagian 10 — Customize Branding & Config
+## 4. Local Development Setup
 
-Sekarang saatnya **adapt boilerplate ke aplikasi kamu**.
+### 4.1 Clone Repository
 
-### 10.1 Branding (`src/config/branding.config.ts`)
+```bash
+git clone https://github.com/<YOUR_USERNAME>/<YOUR_REPO>.git
+cd <YOUR_REPO>
+```
 
-Paling mudah: override via `.env.local` (yang udah kita isi di Bagian 3.2). Semua field di `brandingConfig` bisa di-override via env.
+### 4.2 Install Dependencies
 
-Kalau mau hardcode (tidak recommend untuk multi-environment):
+```bash
+pnpm install
+```
 
-```ts
-// src/config/branding.config.ts
-export const brandingConfig = {
-  name: "Acme Corp",
-  shortName: "Acme",
-  description: "The best tool ever",
-  // ...
+Tunggu ~1-2 menit. Dependencies yang notable:
+- `@supabase/ssr`, `@supabase/supabase-js` — Supabase client
+- `resend`, `@react-email/components`, `@react-email/render` — email
+- `standardwebhooks` — HMAC verify (auth hook + LS webhook)
+- `react`, `next` — framework
+- `zustand` — state management
+- `tailwindcss` — styling
+
+Kalau ada peer dependency warning tapi zero error → OK.
+
+### 4.3 Setup Environment Variables
+
+Copy template:
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local`, isi minimal:
+
+```env
+# Branding (bebas, ini yang bikin boilerplate jadi "app kamu")
+NEXT_PUBLIC_APP_NAME="My App"
+NEXT_PUBLIC_APP_SHORT_NAME="App"
+NEXT_PUBLIC_APP_DESCRIPTION="A modern web application"
+NEXT_PUBLIC_APP_PRIMARY_COLOR="#16a34a"
+
+# Supabase (dari section 2.2)
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...
+
+# Encryption (generate via node crypto)
+ENCRYPTION_KEY=<base64 32 bytes>
+
+# Resend (dari section 3)
+RESEND_API_KEY=re_xxxxxxxxxxxxx
+RESEND_FROM_EMAIL="My App <noreply@yourdomain.com>"
+
+# Supabase Send Email Hook (dari section 2.6)
+SEND_EMAIL_HOOK_SECRET=v1,whsec_xxxxxxxxxxxxx
+
+# App URL (optional di local, wajib di production)
+# NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+**⚠️ Penting:** `.env.local` **tidak boleh di-commit ke Git**. File `.gitignore` sudah exclude ini — verify dengan:
+
+```bash
+git check-ignore .env.local
+# Output: .env.local (artinya di-ignore — GOOD)
+```
+
+Detail setiap env var lihat [ENV_VARS.md](./ENV_VARS.md).
+
+### 4.4 Replace Branding Assets
+
+Ganti logo di `public/branding/`:
+
+- `icon-48.png`, `icon-72.png`, `icon-96.png`, `icon-144.png`, `icon-192.png`, `icon-512.png` — PWA icons
+- `favicon.ico` — 32x32 px, browser tab icon
+- `apple-touch-icon.png` — 180x180 px, iOS homescreen icon
+
+Tools generate favicon + PWA assets dari satu gambar:
+- [realfavicongenerator.net](https://realfavicongenerator.net) (recommended)
+- [favicon.io](https://favicon.io)
+
+### 4.5 Run Development Server
+
+```bash
+pnpm dev
+```
+
+Buka [http://localhost:3000](http://localhost:3000).
+
+**Expected flow:**
+- Anon user → redirect ke `/login`
+- Login page tampil dengan **nama & logo kamu** (dari `.env.local` + `public/branding/`)
+- Login pakai admin user dari step 2.7 → redirect ke `/admin`
+
+### 4.6 Testing Auth Email di Local (ngrok)
+
+Send Email Hook butuh **public URL** yang bisa di-call Supabase cloud. Localhost gak reachable. Solusi: **ngrok**.
+
+#### Setup ngrok
+
+1. Install ngrok: [ngrok.com/download](https://ngrok.com/download) atau `brew install ngrok` / `choco install ngrok`
+2. Daftar akun free → dapet authtoken
+3. `ngrok config add-authtoken <YOUR_TOKEN>`
+
+#### Jalankan tunnel
+
+```bash
+# Terminal 1: Next.js dev server
+pnpm dev
+
+# Terminal 2: ngrok tunnel
+ngrok http 3000
+```
+
+ngrok kasih URL kaya `https://abc123.ngrok-free.app`.
+
+#### Update Supabase hook
+
+1. **Authentication** → **Hooks** → **Send Email Hook**
+2. Update **Hook URL** → `https://abc123.ngrok-free.app/api/auth/hooks/send-email`
+3. **Save**
+
+Sekarang trigger auth email (misal klik forgot password) → Supabase panggil hook → ngrok forward ke localhost → email terkirim via Resend.
+
+> 💡 **Tip:** ngrok URL berubah tiap restart (free tier). Kalau tunnel restart, update URL di Supabase dashboard.
+
+---
+
+## 5. Deploy ke Production (Vercel)
+
+Vercel = platform resmi Next.js, zero-config. Recommended untuk 95% use case.
+
+### 5.1 Push Code ke GitHub
+
+```bash
+git remote add origin https://github.com/<YOUR_USERNAME>/<YOUR_REPO>.git
+git add .
+git commit -m "chore: phase 2 complete"
+git push -u origin main
+```
+
+### 5.2 Import Project ke Vercel
+
+1. Login ke [vercel.com/dashboard](https://vercel.com/dashboard)
+2. **Add New...** → **Project**
+3. Tab **Import Git Repository** → pilih repo kamu
+4. **Framework Preset**: auto-detect sebagai **Next.js** — leave as is
+5. **Root Directory**: `.` (leave default)
+6. **Build & Output Settings**: leave default (Vercel pakai `pnpm build` otomatis)
+
+### 5.3 Set Environment Variables
+
+**JANGAN click Deploy dulu.** Expand section **Environment Variables**, tambah satu per satu:
+
+| Key | Value | Scope | Sensitive |
+|---|---|---|---|
+| `NEXT_PUBLIC_APP_NAME` | Nama app kamu | All | No |
+| `NEXT_PUBLIC_APP_SHORT_NAME` | Short name | All | No |
+| `NEXT_PUBLIC_APP_DESCRIPTION` | Deskripsi | All | No |
+| `NEXT_PUBLIC_APP_PRIMARY_COLOR` | `#16a34a` | All | No |
+| (other branding vars) | ... | All | No |
+| `NEXT_PUBLIC_APP_URL` | `https://your-domain.com` | Production | No |
+| `NEXT_PUBLIC_SUPABASE_URL` | Dari Supabase | All | No |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Dari Supabase | All | No |
+| `SUPABASE_SERVICE_ROLE_KEY` | Dari Supabase | All | **Yes** ⚠️ |
+| `ENCRYPTION_KEY` | Base64 32 bytes | All | **Yes** ⚠️ |
+| `RESEND_API_KEY` | Dari Resend | All | **Yes** ⚠️ |
+| `RESEND_FROM_EMAIL` | `"Brand <noreply@domain.com>"` | All | No |
+| `SEND_EMAIL_HOOK_SECRET` | Dari Supabase hook | All | **Yes** ⚠️ |
+
+**Tips:**
+- Paste env vars bulk: ada tombol **Paste .env** — paste langsung dari `.env.local` kamu
+- Gunakan **Sensitive** flag untuk semua yang marked ⚠️ — Vercel akan hide value setelah save
+- `ENCRYPTION_KEY` **harus identik** di semua environment yang share database. Beda key = encrypted data gak bisa di-decrypt.
+
+### 5.4 Deploy
+
+1. Click **Deploy**
+2. Tunggu 2-5 menit. Kamu lihat log build real-time
+3. Kalau sukses: ada URL production (`https://your-app.vercel.app`) + preview dari main branch
+
+### 5.5 Update Supabase Redirect URLs + Hook URL
+
+**Penting**: sekarang ambil URL production → balik ke Supabase:
+
+**A. URL Configuration:**
+1. **Authentication** → **URL Configuration**
+2. **Site URL**: ganti dari `localhost:3000` ke `https://your-app.vercel.app`
+3. **Redirect URLs**: tambah:
+   ```
+   https://your-app.vercel.app/api/auth/callback
+   https://your-app.vercel.app/api/auth/confirm
+   https://your-app.vercel.app/**
+   https://*-your-vercel-username.vercel.app/**
+   ```
+4. **Save**
+
+**B. Send Email Hook URL:**
+1. **Authentication** → **Hooks** → **Send Email Hook**
+2. Update **Hook URL** → `https://your-app.vercel.app/api/auth/hooks/send-email`
+3. **Save**
+
+### 5.6 Update Google OAuth (kalau dipakai)
+
+Di Google Cloud Console → **Credentials** → OAuth client yang kamu bikin:
+
+1. **Authorized JavaScript origins**: tambah `https://your-app.vercel.app`
+2. **Authorized redirect URIs**: tetap hanya `https://<project>.supabase.co/auth/v1/callback` (Supabase yang handle)
+3. **Save**
+
+### 5.7 Test Production
+
+1. Buka `https://your-app.vercel.app`
+2. Sign up user baru atau login dengan admin
+3. Trigger magic link → cek email masuk (bukan spam), click link → sampe dashboard
+4. Trigger forgot password → cek email → click link → `/reset-password` → new password works
+5. Verify: login flow, logout, role-based redirect jalan
+
+### 5.8 Custom Domain (Opsional)
+
+Kalau punya domain sendiri:
+
+1. Vercel Dashboard → project → **Settings** → **Domains**
+2. **Add** → masukin domain (misal `app.yourcompany.com`)
+3. Vercel kasih DNS records — tambah di DNS provider kamu (Cloudflare, Namecheap, dll)
+   - `A` record → `76.76.21.21`
+   - Atau `CNAME` → `cname.vercel-dns.com`
+4. Wait propagation (~5 menit sampai 48 jam)
+5. Once verified, **update lagi:**
+   - Site URL & Redirect URLs di Supabase
+   - Send Email Hook URL di Supabase
+   - `NEXT_PUBLIC_APP_URL` di Vercel env
+   - Google OAuth origins kalau dipakai
+
+---
+
+## 6. Deploy Alternatif (Non-Vercel)
+
+Vercel bukan satu-satunya pilihan. Berikut alternatif utama.
+
+### 6.1 Netlify
+
+Mirip Vercel:
+
+1. [app.netlify.com](https://app.netlify.com) → **Add new site** → **Import from Git**
+2. Pilih repo → Framework auto-detect Next.js
+3. Build command: `pnpm build`
+4. Publish directory: `.next`
+5. Environment variables: paste seperti di Vercel
+6. Deploy
+
+### 6.2 Self-Hosted (VPS, Docker)
+
+Untuk kamu yang butuh kontrol penuh.
+
+**Dockerfile** (create di root project):
+
+```dockerfile
+FROM node:20-alpine AS deps
+WORKDIR /app
+RUN npm i -g pnpm
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+FROM node:20-alpine AS builder
+WORKDIR /app
+RUN npm i -g pnpm
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+ENV NEXT_TELEMETRY_DISABLED 1
+RUN pnpm build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED 1
+RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
+
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+EXPOSE 3000
+ENV PORT 3000
+
+CMD ["node", "server.js"]
+```
+
+**next.config.js** — pastikan ada `output: 'standalone'`:
+
+```js
+module.exports = {
+  output: 'standalone',
+  // ... existing config
 };
 ```
 
-### 10.2 Module Toggles (`src/config/app.config.ts`)
+Build & run:
 
-Enable/disable modules sesuai kebutuhan app:
-
-```ts
-modules: {
-  admin:    { enabled: true,  path: "/admin" },     // ✅ biasanya always on
-  saas:     { enabled: false, path: "/workspace" }, // SaaS workspace
-  landing:  { enabled: false, path: "/" },          // Public landing page
-  commerce: { enabled: false, path: "/shop" },      // E-commerce
-  blog:     { enabled: false, path: "/blog" },      // Blog/CMS
-  project:  { enabled: false, path: "/projects" },  // Project mgmt
-  forum:    { enabled: false, path: "/forum" },     // Community
-  chat:     { enabled: false, path: "/chat" },      // Real-time chat
-},
+```bash
+docker build -t my-app .
+docker run -p 3000:3000 \
+  -e NEXT_PUBLIC_SUPABASE_URL=... \
+  -e NEXT_PUBLIC_SUPABASE_ANON_KEY=... \
+  -e SUPABASE_SERVICE_ROLE_KEY=... \
+  -e ENCRYPTION_KEY=... \
+  -e RESEND_API_KEY=... \
+  -e RESEND_FROM_EMAIL="My App <noreply@domain.com>" \
+  -e SEND_EMAIL_HOOK_SECRET=... \
+  -e NEXT_PUBLIC_APP_URL=https://your-domain.com \
+  -e NEXT_PUBLIC_APP_NAME="My App" \
+  my-app
 ```
 
-> 💡 **Phase 1 (current):** cuma `admin` yang udah full implementation. Module lain masih skeleton (module.config.ts aja). Phase 2/3 akan isi sesuai roadmap.
+Deploy Docker image ke:
+- **Railway** — [railway.app](https://railway.app)
+- **Render** — [render.com](https://render.com)
+- **Fly.io** — [fly.io](https://fly.io)
+- **DigitalOcean App Platform** — [digitalocean.com/products/app-platform](https://digitalocean.com/products/app-platform)
+- **AWS ECS / Google Cloud Run** — untuk enterprise
 
-### 10.3 Auth Providers (`src/config/app.config.ts`)
+Setelah deploy, **balik ke Supabase update Redirect URLs + Hook URL** dengan domain baru (section 5.5 logic sama).
 
-Aktifkan provider yang kamu setup:
+### 6.3 Cloudflare Pages
+
+Works, tapi ada beberapa Next.js features yang perlu workaround (middleware, dynamic routes). Recommended cuma untuk static-heavy apps. Skip kalau tidak punya alasan kuat.
+
+---
+
+## 7. Post-Deploy Verification
+
+Setelah production live, wajib run verifikasi.
+
+### 7.1 Smoke Test Checklist
+
+Buka production URL, verify:
+
+| # | Test | Expected |
+|---|---|---|
+| 1 | Buka homepage anonymous | Redirect ke `/login` |
+| 2 | Login page tampil | Brand name & logo sesuai `.env` Vercel |
+| 3 | Sign up user baru (kalau allowPublicSignup) | Akun dibuat, profile auto-created |
+| 4 | Login user biasa | Redirect ke `/dashboard` |
+| 5 | Login admin (role=super_admin) | Redirect ke `/admin` |
+| 6 | Akses `/admin` sebagai user biasa | Redirect ke `/dashboard` |
+| 7 | Google OAuth (kalau enabled) | Redirect ke Google → consent → back to app |
+| 8 | **Magic link request** | Email sampe ke inbox (bukan spam) dengan custom template |
+| 9 | **Click magic link** | Landed di dashboard, session active |
+| 10 | **Forgot password request** | Email sampe, click → `/reset-password` page |
+| 11 | **Reset password submit** | Password updated, bisa login dengan password baru |
+| 12 | Logout | Redirect ke `/login`, session clear |
+| 13 | Akses halaman proteksi tanpa login | Redirect ke `/login?returnTo=/profile`, setelah login landing di `/profile` |
+
+### 7.2 Database Verify di Supabase
+
+```sql
+-- 1. Tables intact
+SELECT table_name FROM information_schema.tables
+WHERE table_schema = 'public'
+  AND table_name IN (
+    'user_profiles', 'activity_logs',
+    'commerce_credentials', 'commerce_webhook_configs',
+    'commerce_webhook_events', 'commerce_orders',
+    'commerce_subscriptions', 'commerce_customers'
+  );
+-- Expected: 8 rows
+
+-- 2. User count
+SELECT count(*) as total_users FROM public.user_profiles;
+
+-- 3. Admin exists
+SELECT email, role FROM public.user_profiles
+WHERE role IN ('super_admin', 'admin');
+-- Expected: minimal 1 admin
+
+-- 4. Recent activity
+SELECT action, user_id, created_at FROM public.activity_logs
+ORDER BY created_at DESC LIMIT 20;
+```
+
+### 7.3 Verify Email Delivery
+
+Cek di Resend dashboard:
+
+1. **Emails** tab → lihat log email yang dikirim
+2. Status:
+   - ✅ **Delivered** — sampe inbox
+   - 🟡 **Sent** — udah dikirim, belum confirm delivery
+   - ❌ **Bounced** / **Failed** — masalah di recipient atau domain config
+
+Kalau banyak bounce → cek DKIM/SPF/DMARC setup di Resend.
+
+### 7.4 Verify Supabase Hook Calling
+
+1. Trigger auth email (forgot password dari production URL)
+2. Supabase Dashboard → **Logs** → filter by `auth`
+3. Cari entry yang `function: send_email_hook` — status harus `200`
+4. Kalau `500` / `401` → cek hook logs di Vercel Functions
+
+### 7.5 Check Vercel Build & Runtime Logs
+
+1. Vercel Dashboard → project → **Deployments**
+2. Pilih latest deployment → tab **Logs** (atau **Functions** untuk server logs)
+3. Expected: zero `ERROR` log. Warning boleh (misal Image optimization disabled kalau belum setup).
+4. Filter by `/api/auth/hooks/send-email` — harus ada incoming POST tiap ada auth email trigger
+
+### 7.6 Performance Check (optional)
+
+Run Lighthouse di production:
+
+1. Chrome DevTools (F12) → **Lighthouse** tab
+2. Pilih **Mobile**, **Performance + Accessibility + Best Practices + SEO**
+3. Click **Analyze page load**
+
+Target Phase 2:
+- Performance: 85+
+- Accessibility: 95+
+- Best Practices: 95+
+- SEO: 95+
+
+Kalau jauh di bawah, cek image optimization, unused JS, dll.
+
+---
+
+## 8. Operational Tasks
+
+Task rutin yang perlu tahu cara-nya.
+
+### 8.1 Tambah Admin User Baru
+
+```sql
+-- Di Supabase SQL Editor
+-- Step 1: user harus sudah sign up dulu via UI atau Dashboard Auth
+-- Step 2: elevate role
+UPDATE public.user_profiles
+SET role = 'super_admin'  -- atau 'admin', 'editor', 'viewer'
+WHERE email = 'new-admin@example.com';
+```
+
+### 8.2 Deactivate User
+
+```sql
+UPDATE public.user_profiles
+SET is_active = false
+WHERE email = 'user-to-deactivate@example.com';
+```
+
+User masih bisa login ke Supabase Auth, **tapi login form di boilerplate akan reject dengan error "accountDeactivated"** karena cek `is_active = true`.
+
+### 8.3 Reactivate User
+
+```sql
+UPDATE public.user_profiles
+SET is_active = true
+WHERE email = 'user@example.com';
+```
+
+### 8.4 Delete User (Completely)
+
+```sql
+-- Cascade: delete auth user → trigger remove user_profiles row juga
+DELETE FROM auth.users WHERE email = 'user-to-delete@example.com';
+```
+
+⚠️ **Irreversible.** Backup dulu kalau perlu.
+
+### 8.5 Query Activity Log
+
+```sql
+-- Recent activity
+SELECT
+  al.action,
+  up.email,
+  up.full_name,
+  al.resource_type,
+  al.metadata,
+  al.created_at
+FROM public.activity_logs al
+LEFT JOIN public.user_profiles up ON up.id = al.user_id
+ORDER BY al.created_at DESC
+LIMIT 100;
+
+-- Login in last 24 hours
+SELECT count(*) FROM public.activity_logs
+WHERE action = 'user.login'
+  AND created_at > now() - interval '24 hours';
+
+-- Activity by specific user
+SELECT action, metadata, created_at
+FROM public.activity_logs
+WHERE user_id = (SELECT id FROM public.user_profiles WHERE email = 'user@example.com')
+ORDER BY created_at DESC;
+```
+
+### 8.6 Rotate Resend API Key
+
+Kalau key bocor:
+
+1. Resend Dashboard → **API Keys** → **Create API Key** (bikin baru)
+2. Copy key baru
+3. Update `RESEND_API_KEY` di Vercel → **Redeploy**
+4. Setelah redeploy sukses & verified, delete key lama di Resend
+
+### 8.7 Rotate Supabase Send Email Hook Secret
+
+Kalau secret bocor:
+
+1. Supabase Dashboard → **Authentication** → **Hooks** → **Send Email Hook**
+2. Click **Regenerate secret** (atau disable + enable lagi)
+3. Copy secret baru
+4. Update `SEND_EMAIL_HOOK_SECRET` di Vercel → **Redeploy**
+
+### 8.8 Change Email Template Content
+
+Email template ada di `src/shared/email/templates/`:
+
+- `magic-link.tsx` — magic link + new user signup
+- `recovery.tsx` — password reset
+- `confirm-signup.tsx` — invite
+- `email-change.tsx` — email change confirmation
+- `reauthentication.tsx` — 6-digit OTP
+
+Edit → commit → push → Vercel auto-deploy. Email berikutnya pake template baru.
+
+**Preview template di local:**
+
+```bash
+pnpm email dev
+```
+
+(butuh `react-email` dev dependency — udah include di `package.json`)
+
+Browser kebuka [http://localhost:3001](http://localhost:3001) — live preview semua template.
+
+### 8.9 Change Branding (Re-brand)
+
+Zero-code rebrand:
+
+1. Update env vars (Vercel Dashboard → Settings → Environment Variables)
+2. Replace files di `public/branding/` → commit & push
+3. Vercel auto-redeploy → aplikasi jadi brand baru (termasuk email template yang pake `brandingConfig`)
+
+### 8.10 Enable / Disable Auth Provider
+
+Edit `src/config/app.config.ts`:
 
 ```ts
 auth: {
-  providers: ["email", "google", "magic-link"] as const,
-  // Hapus yang belum di-setup:
-  // providers: ["email"] as const, // kalau belum setup Google/MagicLink
+  providers: ["email", "google", "magic-link"] as const,  // enable semua
+  // providers: ["email"] as const,  // cuma email
+  // ...
 }
 ```
 
-### 10.4 Permissions (`src/config/permissions.config.ts`)
+Commit → push → Vercel rebuild → login page otomatis adjust UI.
 
-Matrix RBAC. Edit kalau butuh permission baru:
+### 8.11 Rotate Supabase Service Role Key
 
-```ts
-export const permissionMatrix = {
-  super_admin: ["*"],                                      // bisa semua
-  admin:       ["admin:access", "users:*", "content:*"],   // admin panel + user/content mgmt
-  editor:      ["content:read", "content:write", "users:read"],
-  viewer:      ["content:read", "users:read"],
-  user:        ["profile:read", "profile:write"],
-};
-```
+Kalau key bocor:
 
-Pakai di code:
+1. Supabase Dashboard → **Project Settings** → **API** → **Reset `service_role` secret**
+2. Copy key baru
+3. Vercel Dashboard → **Settings** → **Environment Variables** → update `SUPABASE_SERVICE_ROLE_KEY`
+4. Trigger redeploy (Vercel → **Deployments** → pilih latest → **Redeploy**)
 
-```tsx
-import { usePermission } from "@/core/auth/hooks";
+### 8.12 Rotate Encryption Key
 
-const canEdit = usePermission("content:write");
-if (!canEdit) return <Forbidden />;
-```
+⚠️ **Ini operasi berisiko.** `ENCRYPTION_KEY` dipakai buat encrypt LS credentials & webhook secrets. Rotate = semua encrypted data harus di-re-encrypt.
 
-### 10.5 Locale (`src/config/app.config.ts` + `src/core/i18n/locales/`)
+Proses:
 
-Default support `id` & `en`. Edit JSON files di `src/core/i18n/locales/` untuk customize copy.
+1. Decrypt semua `commerce_credentials.encrypted_api_key` + `commerce_webhook_configs.encrypted_secret` pake key lama
+2. Encrypt ulang pake key baru
+3. Update env dengan key baru
+4. Deploy
 
-Ganti default locale:
+Gak ada auto-rotation mechanism. Kalau belum siap, biarin key lama aman di secret manager.
 
-```ts
-locale: {
-  default: "en",              // ganti dari "id"
-  available: ["id", "en"] as const,
-}
-```
+### 8.13 Backup Database
 
-### 10.6 Assets branding
+#### Via Supabase Dashboard
+- **Project Settings** → **Database** → **Backups**
+- Free plan: 7 daily backups retained automatically
+- Pro plan: customizable, 30-day retention
 
-Replace file di `public/branding/`:
-- `logo.png` — logo full (192x192 recommended)
-- `logo-sm.png` — logo small (96x96)
-- `favicon.ico`
-- `apple-touch-icon.png` (180x180)
-
----
-
-## Bagian 11 — Jalanin App!
-
-Setelah semua di atas selesai:
-
+#### Manual backup via `pg_dump`
 ```bash
-npm run dev
-# atau
-pnpm dev
-# atau
-bun dev
+# Connection string di Project Settings → Database → Connection string
+pg_dump "postgresql://postgres:[PASSWORD]@db.xxxxxxxx.supabase.co:5432/postgres" \
+  --schema=public \
+  --no-owner --no-acl \
+  > backup-$(date +%Y%m%d).sql
 ```
 
-Buka `http://localhost:3000` — harusnya redirect ke `/login`.
+### 8.14 Disable Email Temporarily (Emergency)
 
-Login pakai credentials dari seed (misal `superadmin@example.com` / `SuperAdmin@2026`) → masuk dashboard → kalau role `super_admin` atau `admin`, auto-redirect ke `/admin`.
+Kalau Resend down / bocor / bill limit hit:
 
-**Test feature:**
-- ✅ Login via Email/Password
-- ✅ Login via Google (kalau di-setup)
-- ✅ Login via Magic Link (cek email)
-- ✅ Logout (button di UserMenu kanan atas)
-- ✅ Role-based access: user role `user` → akses `/admin` harus redirect
-- ✅ Locale switch (kalau diimplementasi di UI)
+**Option A — Fallback ke Supabase default SMTP:**
+1. Supabase Dashboard → **Auth** → **Hooks** → **Send Email Hook** → **Disable**
+2. Supabase auto-fallback pake default SMTP (limit rendah, tapi functional)
+
+**Option B — Complete email disable:**
+1. Disable magic link / signup di `app.config.ts`:
+   ```ts
+   auth: {
+     providers: ["email"] as const,  // remove "magic-link"
+     allowPublicSignup: false,
+     requireEmailVerification: false,
+   }
+   ```
+2. User cuma bisa login email+password existing. Forgot password flow mati.
+
+Pulih Resend? Enable hook lagi, revert config.
 
 ---
 
-## ✅ Verification Checklist
+## 9. Troubleshooting
 
-Cek satu per satu biar yakin semua bener:
+### 9.1 `NEXT_PUBLIC_SUPABASE_URL is not defined`
 
-### Local Setup
-- [ ] Node.js 20+ terinstall (`node --version`)
-- [ ] `npm install` berhasil tanpa error fatal
-- [ ] `.env.local` ada & berisi 3 Supabase env var
-- [ ] `.env.local` ada di `.gitignore`
-
-### Supabase
-- [ ] Project Supabase created & running
-- [ ] Project URL & Anon Key udah di-copy
-- [ ] Service Role Key udah di-copy (untuk seed)
-- [ ] SQL migration (`setup.sql`) udah jalan, sanity check NOTICE muncul
-- [ ] Tabel `user_profiles`, `activity_logs`, `stripe_events` visible di Database → Tables
-- [ ] Storage bucket `avatars` visible di Storage
-- [ ] RLS policies aktif di semua 3 tabel
-
-### Auth Providers
-- [ ] Email provider enabled
-- [ ] (Optional) Google OAuth: Client ID & Secret di-paste, redirect URI match `<ref>.supabase.co/auth/v1/callback`
-- [ ] (Optional) Magic Link provider enabled (otomatis kalau Email enabled)
-
-### Redirect URLs
-- [ ] `Site URL` di-set
-- [ ] `Redirect URLs` include `http://localhost:3000/api/auth/callback` + wildcard `/**`
-- [ ] (Production) Redirect URLs include domain production + Vercel preview wildcard
-
-### User
-- [ ] Seed script jalan, atau minimal 1 admin manual
-- [ ] Bisa login dengan credentials admin
-- [ ] Admin user redirect ke `/admin` setelah login
-
-### App
-- [ ] `npm run dev` jalan tanpa error
-- [ ] Login page load dengan benar (logo, tombol provider sesuai config)
-- [ ] Bisa login → masuk dashboard
-- [ ] TypeScript gak ada error (`npx tsc --noEmit`)
-
-Kalau semua ✅, setup selesai. 🎉
-
----
-
-## 🆘 Troubleshooting
-
-### "Missing environment variable" saat `npm run dev`
-
-**Penyebab:** `.env.local` belum dibaca atau typo nama var.
+**Cause:** env var nggak ke-load.
 
 **Fix:**
-- Pastikan file bernama persis `.env.local` (bukan `.env` doang, bukan `env.local`)
-- Restart dev server — Next.js baca env saat startup
-- Cek typo nama var — harus `NEXT_PUBLIC_SUPABASE_URL` bukan `NEXT_PUBLIC_SUPABASE_URL_` dll
+- Local: pastikan file namanya `.env.local` (bukan `.env`), pastikan di root project
+- Vercel: cek Settings → Environment Variables, pastikan scope include **Production**
+- Restart dev server setelah edit `.env.local`
 
-### "Redirect URL not allowed" saat OAuth / Magic Link
+### 9.2 Google OAuth: "redirect_uri_mismatch"
 
-**Penyebab:** URL callback belum di-whitelist di Supabase.
+**Cause:** Redirect URI di Google Console nggak match dengan yang dipakai Supabase.
 
 **Fix:**
-- Bagian 6 — pastikan `http://localhost:3000/api/auth/callback` dan `http://localhost:3000/**` udah ada di **Redirect URLs**
-- Tunggu ~1 menit propagasi
-- Hard refresh browser (Cmd/Ctrl + Shift + R)
+- Google Console → Credentials → OAuth client → **Authorized redirect URIs**
+- Harus ada: `https://<YOUR_PROJECT_REF>.supabase.co/auth/v1/callback` (bukan URL app kamu)
 
-### "Invalid login credentials" padahal password bener
+### 9.3 Magic Link email gak sampai
 
-**Penyebab:**
-- Email belum confirmed (kalau "Confirm email" aktif di provider)
-- User gak ada di `user_profiles` (padahal di `auth.users` ada)
-- User `is_active = false`
+**Cause & Fix (urut dari paling common):**
+
+1. **Hook belum di-set / URL salah** → Supabase Dashboard → Auth → Hooks → verify URL benar
+2. **Hook return 401** → Secret salah. Regenerate di Supabase, update `SEND_EMAIL_HOOK_SECRET` di Vercel, redeploy
+3. **Hook return 500** → Cek Vercel Function logs. Common: `RESEND_API_KEY` missing atau invalid, domain Resend belum verified
+4. **Email masuk spam** → Cek DKIM/SPF/DMARC di Resend dashboard, harus semua ✅
+5. **Resend domain not verified** → Resend Dashboard → Domains → check DNS status
+6. **Rate limit Resend hit** → Free tier 100 email/hari, upgrade atau wait
+
+Debug:
+```
+Supabase Dashboard → Logs → filter auth + send_email_hook
+→ Cari entry yang error
+→ Vercel Functions Logs → cari timestamp yang match → baca error detail
+```
+
+### 9.4 Email sampai tapi click link error "auth_callback_error"
+
+**Cause:** Link di email pointing ke endpoint yang salah, atau token_hash udah expired.
+
+**Fix:**
+- Verify `buildVerificationUrl()` di `send-auth-email.tsx` pointing ke `/api/auth/confirm` (bukan `/api/auth/callback`)
+- Token_hash default expire 1 jam. Kalau click link >1 jam setelah email dikirim → expired, request ulang
+- Cek `NEXT_PUBLIC_APP_URL` di Vercel — harus match domain production
+
+### 9.5 Hook endpoint return 500 "server_misconfigured"
+
+**Cause:** `SEND_EMAIL_HOOK_SECRET` belum di-set atau format salah.
+
+**Fix:**
+- Vercel → Environment Variables → verify `SEND_EMAIL_HOOK_SECRET` exists + scope include Production
+- Value **harus** include prefix `v1,` — format: `v1,whsec_xxxxxxxxxx`
+- Kalau copy-paste manual, pastikan gak ada trailing whitespace
+
+### 9.6 Hook endpoint return 401 "invalid_signature"
+
+**Cause:** Secret di app ≠ secret di Supabase dashboard.
+
+**Fix:**
+- Supabase Dashboard → Auth → Hooks → Regenerate secret
+- Copy EXACT value (termasuk `v1,whsec_` prefix) → update `SEND_EMAIL_HOOK_SECRET` di Vercel
+- Redeploy
+
+### 9.7 Resend error "Domain is not verified"
+
+**Cause:** Sender di `RESEND_FROM_EMAIL` pake domain yang belum verified.
+
+**Fix:**
+- Resend Dashboard → Domains → cek status, harus ✅ **Verified**
+- Kalau Pending → tunggu DNS propagate (up to 48h)
+- Kalau Failed → re-check DNS records (SPF, DKIM, DMARC), harus match yang dikasih Resend
+
+### 9.8 Login sukses tapi redirect ke `/login` lagi
+
+**Cause:** Session cookie nggak ke-set, biasanya karena redirect URL mismatch.
+
+**Fix:**
+- Supabase Dashboard → Authentication → URL Configuration
+- Verify **Site URL** = domain production kamu
+- Verify **Redirect URLs** include domain + `/api/auth/callback` + `/api/auth/confirm`
+- Hard refresh browser (Ctrl+Shift+R), hapus cookies
+
+### 9.9 Admin user akses `/admin` tapi redirect ke `/dashboard`
+
+**Cause:** Role di DB belum `super_admin` atau `admin`.
 
 **Fix:**
 ```sql
--- Cek di SQL Editor
-SELECT u.id, u.email, u.email_confirmed_at, p.role, p.is_active
-FROM auth.users u
-LEFT JOIN public.user_profiles p ON u.id = p.id
-WHERE u.email = 'your-email@example.com';
+SELECT email, role FROM public.user_profiles WHERE email = 'your-email@example.com';
+-- Kalau role bukan admin, elevate:
+UPDATE public.user_profiles SET role = 'super_admin' WHERE email = 'your-email@example.com';
 ```
 
-- Kalau `email_confirmed_at` NULL → confirm manual: **Authentication** → **Users** → klik user → **Confirm email**
-- Kalau `p.role` NULL → profile gak ke-create (trigger fail?) → re-run seed atau insert manual
-- Kalau `is_active = false` → activate:
-  ```sql
-  UPDATE public.user_profiles SET is_active = true WHERE email = 'your-email@example.com';
-  ```
+Logout → login ulang (biar session fetch role baru).
 
-### Google OAuth redirect ke Supabase tapi error "redirect_uri_mismatch"
+### 9.10 `pnpm build` error: "Module not found: '@/core/...'"
 
-**Penyebab:** Authorized redirect URI di Google Console gak match.
+**Cause:** TypeScript path alias nggak resolve.
 
 **Fix:**
-- Buka Google Cloud Console → **Credentials** → edit OAuth client
-- **Authorized redirect URIs** harus persis: `https://<YOUR_PROJECT_REF>.supabase.co/auth/v1/callback`
-- Tanpa trailing slash, https (bukan http), ref project bener
-- Save → tunggu ~5 menit propagasi Google
-
-### Magic Link email gak sampe
-
-**Penyebab & Fix:**
-1. Cek folder **Spam/Junk** — default Supabase SMTP sering masuk spam
-2. Cek rate limit — default ~3 email/jam. Tunggu atau setup custom SMTP (Bagian 7)
-3. Email salah ketik — cek log di **Authentication** → **Logs**
-
-### "foreign key violation" saat seed
-
-**Penyebab:** trigger `handle_new_user()` gak jalan, jadi `user_profiles` row gak ke-create saat auth user dibuat.
-
-**Fix:**
-```sql
--- Re-create trigger (udah include di nuclear-setup.sql)
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_new_user();
-```
-
-### TypeScript error setelah `supabase gen types`
-
-**Penyebab:** schema DB gak match types yang di-generate.
-
-**Fix:**
-- Pastikan SQL migration udah jalan lengkap sampai NOTICE sanity check muncul
-- Re-run `supabase gen types` command
-- Restart TS server di VS Code: `Cmd/Ctrl + Shift + P` → **TypeScript: Restart TS Server**
-
-### "Module not found: @/config"
-
-**Penyebab:** path alias `@/*` gak ke-set di `tsconfig.json`.
-
-**Fix:** cek `tsconfig.json` ada:
-
-```json
-{
-  "compilerOptions": {
-    "paths": {
-      "@/*": ["./src/*"]
+- Cek `tsconfig.json` punya:
+  ```json
+  {
+    "compilerOptions": {
+      "baseUrl": ".",
+      "paths": {
+        "@/*": ["./src/*"]
+      }
     }
   }
-}
+  ```
+
+### 9.11 `pnpm build` error: "Can't resolve '@react-email/render'"
+
+**Cause:** Dependencies email module belum di-install.
+
+**Fix:**
+```bash
+pnpm add resend @react-email/components @react-email/render standardwebhooks
+pnpm add -D react-email
 ```
 
-### App build gagal di Vercel tapi local OK
+### 9.12 Vercel build fail: "Command exited with 1"
 
-**Penyebab paling umum:**
-1. **Env var belum di-set di Vercel** — Settings → Environment Variables → add semua yang ada di `.env.local`
-2. **Build command salah** — harus `npm run build` atau `next build`
-3. **Node version** — set di Vercel Settings → General → Node.js Version → `20.x`
+**Cause:** Bisa beberapa hal.
+
+**Fix (urut dari paling common):**
+1. Cek Vercel build logs untuk error message exact
+2. TypeScript error → run `pnpm tsc --noEmit` di local, fix
+3. Missing env var → tambah di Vercel Settings → Environment Variables → Redeploy
+4. Outdated deps → `rm -rf node_modules pnpm-lock.yaml && pnpm install` di local, commit baru
+
+### 9.13 Avatar upload fail: 403 Forbidden
+
+**Cause:** Path upload nggak sesuai convention atau RLS policy.
+
+**Fix:**
+- Path **harus** diawali dengan `<user_id>/...` (misal `<user_id>/avatar.png`)
+- RLS policy `avatars_user_upload` cek `(storage.foldername(name))[1] = auth.uid()::text`
+- Contoh code upload benar:
+  ```ts
+  const filePath = `${user.id}/avatar-${Date.now()}.png`;
+  await supabase.storage.from("avatars").upload(filePath, file);
+  ```
+
+### 9.14 LS webhook gak dipanggil setelah test purchase
+
+**Cause:** Webhook URL / secret mismatch atau LS test mode salah.
+
+**Fix:**
+- User dashboard → Settings → Webhooks → verify URL config + secret match di LS dashboard
+- LS Dashboard → Webhooks → cek **Recent Deliveries** — kalau 401 berarti secret mismatch
+- Kalau LS test mode ≠ credential test mode → webhook gak kirim (LS bedain production vs test)
+
+### 9.15 Deploy sukses tapi production show "500 Internal Server Error"
+
+**Cause:** Umumnya server-side env var hilang.
+
+**Fix:**
+- Vercel Dashboard → project → **Logs** (real-time) → cek error message
+- Common culprit:
+  - `SUPABASE_SERVICE_ROLE_KEY` lupa di-set
+  - `ENCRYPTION_KEY` lupa di-set (commerce endpoints crash)
+  - `RESEND_API_KEY` lupa di-set (hook endpoint crash saat trigger email)
+- Verify semua env var dari section 5.3 udah set di Vercel
 
 ---
 
-## 📚 Next Steps
+## 10. Environment Variables Reference
 
-Setup selesai? Berikut rekomendasi lanjutan:
+Quick reference. Detail lengkap lihat [ENV_VARS.md](./ENV_VARS.md).
 
-### Development
-- 📖 **Baca arsitektur:** pelajari `src/core/` dan `src/modules/` — ngerti separation of concern-nya
-- 🧪 **Setup testing:** Vitest + React Testing Library (belum include di boilerplate)
-- 🎨 **Customize theme:** edit CSS variables di `src/app/globals.css` untuk dark mode / palette
+### 10.1 Public (client-side accessible)
 
-### Production Deploy
-- 🚀 **Deploy ke Vercel:** paling mudah untuk Next.js — [vercel.com/docs/frameworks/nextjs](https://vercel.com/docs/frameworks/nextjs)
-- 🔐 **Security checklist:**
-  - [ ] Email confirmation aktif
-  - [ ] Custom SMTP setup (bukan default Supabase)
-  - [ ] Rate limiting di Supabase Auth
-  - [ ] Review RLS policies untuk tabel custom
-- 📊 **Monitoring:** Sentry untuk error tracking, PostHog untuk analytics
+| Variable | Required | Default |
+|---|---|---|
+| `NEXT_PUBLIC_APP_NAME` | No | `"My App"` |
+| `NEXT_PUBLIC_APP_SHORT_NAME` | No | `"App"` |
+| `NEXT_PUBLIC_APP_DESCRIPTION` | No | `"A modern web application"` |
+| `NEXT_PUBLIC_APP_TAGLINE` | No | `"Welcome"` |
+| `NEXT_PUBLIC_APP_KEYWORDS` | No | `"app,web,platform"` |
+| `NEXT_PUBLIC_APP_AUTHOR` | No | `""` |
+| `NEXT_PUBLIC_APP_PRIMARY_COLOR` | No | `"#16a34a"` |
+| `NEXT_PUBLIC_APP_BG_COLOR` | No | `"#ffffff"` |
+| `NEXT_PUBLIC_APP_CATEGORY` | No | `"productivity"` |
+| `NEXT_PUBLIC_APP_LANG` | No | `"id-ID"` |
+| `NEXT_PUBLIC_APP_URL` | Production **wajib** | fallback ke request origin |
+| `NEXT_PUBLIC_SUPABASE_URL` | **Yes** | — |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | **Yes** | — |
 
-### Extend Boilerplate
-- ➕ **Aktifkan module:** edit `app.config.ts`, enable module yang dibutuhin, implement content-nya
-- 🧩 **Bikin module custom:** follow pattern di `src/modules/admin/` — `module.config.ts` + `index.ts` dulu, lanjut `components/`, `services/`, `migrations/`
-- 💳 **Setup Stripe:** kalau enable payment, follow docs Stripe untuk webhook → pakai `stripe_events` table yang udah ada untuk idempotency
+### 10.2 Secret (server-side only)
+
+| Variable | Required | Keterangan |
+|---|---|---|
+| `SUPABASE_SERVICE_ROLE_KEY` | **Yes** | Service role, bypass RLS |
+| `ENCRYPTION_KEY` | **Yes** | Base64 32 bytes, AES-256-GCM |
+| `RESEND_API_KEY` | **Yes** | Resend SDK auth |
+| `RESEND_FROM_EMAIL` | **Yes** | Sender: `"Name <email@domain.com>"` |
+| `SEND_EMAIL_HOOK_SECRET` | **Yes** | Format: `v1,whsec_xxx` |
+
+### 10.3 File `.env.example` (template)
+
+Ini isi file `.env.example` yang harus di-commit ke repo:
+
+```env
+# =====================================================================
+# Application Branding
+# =====================================================================
+NEXT_PUBLIC_APP_NAME="My App"
+NEXT_PUBLIC_APP_SHORT_NAME="App"
+NEXT_PUBLIC_APP_DESCRIPTION="A modern web application"
+NEXT_PUBLIC_APP_TAGLINE="Welcome"
+NEXT_PUBLIC_APP_KEYWORDS="app,web,platform"
+NEXT_PUBLIC_APP_AUTHOR=""
+NEXT_PUBLIC_APP_PRIMARY_COLOR="#16a34a"
+NEXT_PUBLIC_APP_BG_COLOR="#ffffff"
+NEXT_PUBLIC_APP_CATEGORY="productivity"
+NEXT_PUBLIC_APP_LANG="id-ID"
+
+# App URL (wajib production, optional di local)
+# NEXT_PUBLIC_APP_URL=https://your-domain.com
+
+# =====================================================================
+# Supabase (Required)
+# =====================================================================
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# =====================================================================
+# Encryption (Required)
+# =====================================================================
+# Generate: node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+ENCRYPTION_KEY=
+
+# =====================================================================
+# Resend — Transactional Email (Required)
+# =====================================================================
+RESEND_API_KEY=
+RESEND_FROM_EMAIL="My App <noreply@yourdomain.com>"
+
+# =====================================================================
+# Supabase Send Email Hook (Required)
+# =====================================================================
+# Dari Supabase Dashboard → Auth → Hooks → Send Email Hook
+# Format: v1,whsec_xxxxxxxxxx
+SEND_EMAIL_HOOK_SECRET=
+```
 
 ---
 
-## 🙋 Butuh Bantuan?
+## 📌 Quick Reference
 
-- 📄 Cek file `setup.sql`, `nuclear-setup.sql`, `seed.js` — comment di dalamnya cukup detail
-- 🐛 Error yang nggak ada di Troubleshooting? Cek Supabase Logs: **Logs** → **Postgres Logs** / **Auth Logs**
-- 💬 Tanya di channel team kamu — jangan malu bertanya, setup Supabase memang tricky di awal
+### Command Cheatsheet
+
+```bash
+# Local dev
+pnpm dev                    # Start dev server di :3000
+pnpm build                  # Build production
+pnpm start                  # Run production build lokal
+pnpm lint                   # Run ESLint
+pnpm email dev              # Preview email templates (http://localhost:3001)
+
+# Supabase CLI
+supabase login
+supabase link --project-ref <REF>
+supabase db push            # Apply migrations
+supabase gen types typescript --linked > src/core/types/database.ts
+
+# ngrok (dev testing Send Email Hook)
+ngrok http 3000
+
+# Vercel CLI (optional)
+npm i -g vercel
+vercel                      # Deploy preview
+vercel --prod               # Deploy to production
+vercel env pull             # Download env vars to .env.local
+```
+
+### Important URLs
+
+| What | URL pattern |
+|---|---|
+| Supabase Dashboard | `https://supabase.com/dashboard/project/<PROJECT_REF>` |
+| Supabase Auth callback | `https://<PROJECT_REF>.supabase.co/auth/v1/callback` |
+| Resend Dashboard | `https://resend.com/emails` |
+| Your app (local) | `http://localhost:3000` |
+| Your app (Vercel) | `https://<PROJECT_NAME>.vercel.app` |
+| OAuth callback | `<YOUR_APP_URL>/api/auth/callback` |
+| Email OTP confirm | `<YOUR_APP_URL>/api/auth/confirm` |
+| Send Email Hook | `<YOUR_APP_URL>/api/auth/hooks/send-email` |
+
+### SQL Snippet Bank
+
+```sql
+-- Elevate to super_admin
+UPDATE public.user_profiles SET role='super_admin' WHERE email='you@x.com';
+
+-- List all users
+SELECT id, email, role, is_active FROM public.user_profiles ORDER BY created_at DESC;
+
+-- Recent logins
+SELECT up.email, al.created_at FROM activity_logs al
+JOIN user_profiles up ON up.id = al.user_id
+WHERE al.action = 'user.login' ORDER BY al.created_at DESC LIMIT 50;
+
+-- Deactivate user
+UPDATE public.user_profiles SET is_active=false WHERE email='x@x.com';
+
+-- Commerce credential count
+SELECT count(*) FROM commerce_credentials WHERE owner_user_id IS NOT NULL;
+
+-- Recent webhook events (all users)
+SELECT provider, event_name, received_at, processed_at, error
+FROM commerce_webhook_events
+ORDER BY received_at DESC LIMIT 20;
+
+-- Failed webhooks (need retry/manual recovery)
+SELECT * FROM commerce_webhook_events
+WHERE processed_at IS NULL AND error IS NOT NULL;
+```
 
 ---
 
-**Selamat coding! 🎉**
+## 🎯 Checklist: Production Ready?
 
-> _"The best boilerplate is the one you actually understand."_
-> — every frustrated developer ever
+Copy ini ke issue tracker sebelum go-live:
+
+```
+INFRASTRUCTURE
+[ ] Supabase project di region yang tepat
+[ ] supabase/setup.sql udah di-apply (8 tables + storage)
+[ ] Database backups enabled (Supabase → Project Settings → Database)
+[ ] RLS policies active di semua tables
+[ ] ENCRYPTION_KEY generated dan di-backup ke secret manager
+
+AUTH
+[ ] Email provider enabled
+[ ] Email confirmation enabled (production)
+[ ] Google OAuth configured di Google Console + Supabase (kalau dipakai)
+[ ] Redirect URLs include production domain + /**
+[ ] Site URL = production domain
+
+SEND EMAIL HOOK
+[ ] Hook enabled di Supabase dashboard
+[ ] Hook URL pointing ke production domain + /api/auth/hooks/send-email
+[ ] Hook secret di-copy ke SEND_EMAIL_HOOK_SECRET env
+
+RESEND
+[ ] Domain verified (DKIM ✓ SPF ✓ DMARC ✓)
+[ ] API key generated dan di-set di RESEND_API_KEY
+[ ] Sender email di RESEND_FROM_EMAIL pake verified domain
+[ ] Test email terkirim sukses ke inbox (bukan spam)
+
+HOSTING (Vercel)
+[ ] All env vars set di Production + Preview
+[ ] SUPABASE_SERVICE_ROLE_KEY, ENCRYPTION_KEY, RESEND_API_KEY,
+    SEND_EMAIL_HOOK_SECRET marked as Sensitive
+[ ] Custom domain configured (kalau ada)
+[ ] HTTPS working (Vercel auto)
+[ ] NEXT_PUBLIC_APP_URL set ke production domain
+
+VERIFICATION
+[ ] 13 smoke tests di section 7.1 pass
+[ ] Admin user pertama created
+[ ] Magic link flow tested E2E (email masuk + click link + landed di dashboard)
+[ ] Forgot password flow tested E2E
+[ ] Lighthouse score > 85 (performance)
+
+MONITORING
+[ ] Vercel Analytics enabled (optional tapi recommended)
+[ ] Supabase Logs reviewed, zero ERROR
+[ ] Resend Emails dashboard checked (zero bounce/fail)
+[ ] Notification setup untuk downtime (Vercel: integration with Slack/Email)
+
+DOCUMENTATION
+[ ] README.md updated dengan project-specific info
+[ ] .env.example up-to-date
+[ ] Admin contact info documented untuk tim
+```
+
+Semua ticked? 🚀 **Production ready.**
+
+---
+
+## 📚 Resource Links
+
+### Official Docs
+- [Next.js App Router](https://nextjs.org/docs)
+- [Supabase Auth](https://supabase.com/docs/guides/auth)
+- [Supabase Auth Hooks](https://supabase.com/docs/guides/auth/auth-hooks)
+- [Supabase RLS](https://supabase.com/docs/guides/auth/row-level-security)
+- [Supabase Storage](https://supabase.com/docs/guides/storage)
+- [Resend Docs](https://resend.com/docs)
+- [React Email](https://react.email/docs)
+- [Vercel Deployment](https://vercel.com/docs/deployments/overview)
+- [Lemon Squeezy API](https://docs.lemonsqueezy.com)
+
+### Troubleshooting
+- [Supabase Community](https://github.com/supabase/supabase/discussions)
+- [Next.js Issues](https://github.com/vercel/next.js/issues)
+- [Vercel Support](https://vercel.com/support)
+- [Resend Support](https://resend.com/support)
+
+### Tools
+- [Favicon Generator](https://realfavicongenerator.net)
+- [OKLCH Color Picker](https://oklch.com)
+- [Supabase CLI](https://supabase.com/docs/guides/cli)
+- [ngrok](https://ngrok.com) — tunnel untuk dev webhook testing
+
+---
+
+## 🔒 Catatan Final
+
+**Phase 2 = pengembangan boilerplate ini SELESAI.** Tidak ada Phase 3. Tidak ada roadmap tambahan.
+
+Dokumen ini di-update terakhir 23 April 2026. Kalau ada perubahan arsitektur (yang seharusnya gak ada karena udah final), update di sini dulu sebelum merge.
+
+Fork dan extend sendiri kalau butuh fitur yang belum ada di boilerplate ini.
+
+**End of Operations Runbook.**
