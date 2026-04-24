@@ -10,7 +10,7 @@
  *   - Email address change      (type=email_change)
  *   - Invite acceptance         (type=invite)
  *
- * Link format dari email:
+ * Link format dari email (dibangun di `shared/email/send-auth-email.tsx`):
  *   {SITE_URL}/api/auth/confirm?token_hash=xxx&type=signup&next=/dashboard
  *
  * ⚠️ CRITICAL: Template Supabase harus pakai `{{ .TokenHash }}`
@@ -29,6 +29,16 @@
  *   - /callback   → OAuth PKCE (pake `exchangeCodeForSession` + `code` param)
  *   - /confirm    → Email OTP    (pake `verifyOtp` + `token_hash` param)
  *   Mereka GAK BISA di-merge karena API Supabase-nya beda.
+ *
+ * Chain unwrap (important):
+ *   Form-form (register/forgot-password/magic-link) set `emailRedirectTo`
+ *   ke `/api/auth/callback?next=X` — pattern dari PKCE era. Supabase forward
+ *   itu ke sini sebagai `next`. Kalau kita redirect mentah-mentah, user
+ *   landing di /callback tanpa `code` → error loop.
+ *
+ *   Solusi: sebelum resolve redirect, kita unwrap — kalau `next` adalah
+ *   /api/auth/callback URL, ambil inner `next`-nya aja. Non-invasive, form
+ *   existing gak perlu diubah.
  */
 
 import { type EmailOtpType } from "@supabase/supabase-js";
@@ -47,7 +57,12 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  const next = searchParams.get("next");
+  const rawNext = searchParams.get("next");
+
+  // Unwrap /api/auth/callback?next=X legacy chain. Kalau form-form nanti
+  // di-refactor supaya `emailRedirectTo` point ke dest langsung, unwrap
+  // ini jadi no-op dan aman untuk di-remove.
+  const next = unwrapCallbackNext(rawNext);
 
   // Helper: build absolute redirect URL — honor forwarded host di prod
   const buildRedirect = (path: string) => {
@@ -138,4 +153,40 @@ export async function GET(request: NextRequest) {
     next
   );
   return buildRedirect(dest);
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Unwrap `/api/auth/callback?next=X` → X.
+ *
+ * Kenapa perlu ini:
+ *   Form auth existing (register/forgot-password/magic-link) set
+ *   `emailRedirectTo` ke `/api/auth/callback?next=<finalDest>` — pattern
+ *   dari era PKCE flow (pre-Send Email Hook). Dengan Send Email Hook aktif,
+ *   email link-nya ke /api/auth/confirm, yang verifyOtp di sini, BUKAN
+ *   lewat /callback lagi. Kalau kita redirect ke /callback tanpa `code`,
+ *   dia auto-error → user stuck di login.
+ *
+ *   Unwrap recursive kalau di-wrap double (defensive). Recursion bounded
+ *   karena tiap unwrap strip satu layer.
+ *
+ * Keeps paths yang udah aman (mulai dengan `/` dan bukan /callback)
+ * apa adanya — `resolvePostLoginRedirect` nanti yang final-sanitize.
+ */
+function unwrapCallbackNext(raw: string | null): string | null {
+  if (!raw) return null;
+  if (!raw.startsWith("/api/auth/callback")) return raw;
+
+  try {
+    // Parse dengan dummy base karena string-nya relative
+    const u = new URL(raw, "http://unwrap.local");
+    const inner = u.searchParams.get("next");
+    // Recurse kalau inner juga wrapped callback (shouldn't happen, tapi defensive)
+    return unwrapCallbackNext(inner);
+  } catch {
+    return null;
+  }
 }
