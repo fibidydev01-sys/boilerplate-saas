@@ -83,8 +83,8 @@ export const lsApiKeySchema = z.object({
   apiKey: z
     .string()
     .min(1, t("commerce.validation.apiKeyRequired"))
-    .min(20, t("commerce.validation.apiKeyTooShort"))
-    .max(500, t("commerce.validation.apiKeyTooLong")),
+    .min(20, t("commerce.validation.apiKeyTooShort")),
+  // .max dihapus — LS API key panjangnya tidak tentu
   isTestMode: z.boolean().optional().default(false),
 });
 
