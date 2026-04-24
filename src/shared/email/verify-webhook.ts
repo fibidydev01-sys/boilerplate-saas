@@ -12,6 +12,14 @@
  * Secret format yang disimpan di env:
  *   "v1,whsec_xxxxxxxxx"
  *
+ * Env var name:
+ *   Primary   : SUPABASE_AUTH_HOOK_SECRET   (canonical, match nomenclature
+ *                                            Supabase dashboard)
+ *   Fallback  : SEND_EMAIL_HOOK_SECRET      (legacy alias — di-support biar
+ *                                            deploy lama gak break pas rename)
+ *
+ * Kalau rename ke primary udah full rollout, fallback bisa di-remove.
+ *
  * Important: verify butuh RAW body string, bukan hasil JSON.parse. Caller
  * harus `await request.text()` dulu, baru parse setelah verifikasi.
  */
@@ -30,7 +38,11 @@ export function verifyHookRequest(
   rawBody: string,
   headers: Headers
 ): VerifyResult {
-  const secret = process.env.SEND_EMAIL_HOOK_SECRET;
+  // Prefer canonical name; fallback ke legacy supaya gak breaking change.
+  const secret =
+    process.env.SUPABASE_AUTH_HOOK_SECRET ??
+    process.env.SEND_EMAIL_HOOK_SECRET;
+
   if (!secret) {
     return { valid: false, reason: "missing_secret" };
   }
@@ -44,9 +56,9 @@ export function verifyHookRequest(
   }
 
   try {
-    // `standardwebhooks` expects secret WITHOUT the "v1,whsec_" prefix
-    // in some versions — but Supabase docs say include it. Library auto-handles
-    // the "whsec_" prefix; kita strip manual prefix "v1," kalau ada.
+    // `standardwebhooks` expects secret WITHOUT "v1," prefix.
+    // Library handle "whsec_" stripping sendiri. Supabase store dalam
+    // format "v1,whsec_<base64>" — kita cuma strip "v1,".
     const normalizedSecret = secret.startsWith("v1,")
       ? secret.slice(3)
       : secret;
