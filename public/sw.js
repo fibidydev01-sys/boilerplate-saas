@@ -4,11 +4,15 @@
  * Strategy: Network First, Cache Fallback.
  * Offline → serve /offline.html untuk navigation, serve cached asset untuk lainnya.
  *
- * ⚠️ CACHE_NAME di-bump manual setiap deploy baru biar client fetch asset fresh.
- *    Alternative: bind ke build timestamp / commit hash di build step.
+ * CACHE_NAME di-bump manual setiap deploy baru biar client fetch asset fresh.
+ * Alternative: bind ke build timestamp / commit hash di build step.
  *
  * Catatan: file ini STATIC — tidak bisa baca env var / config TS.
  * Value di sini sengaja minimal & generik supaya universal.
+ *
+ * Registration: lihat src/core/components/sw-register.tsx.
+ * Tanpa registration, browser TIDAK akan execute file ini meski sudah ada
+ * di /public — dan PWA install prompt gak akan muncul.
  */
 
 // Bump version setiap release baru untuk force cache invalidation
@@ -131,13 +135,18 @@ self.addEventListener("fetch", (event) => {
 });
 
 // ---------- Push Notification ----------
+// Icon paths dipetakan ke file real di public/branding/.
+// `icon` = main icon kotak, biasanya ditampilkan besar di banner notifikasi.
+// `badge` = small monochrome icon di system tray (Android), idealnya
+//   transparent + putih solid. Pakai favicon-96x96 sebagai fallback —
+//   ganti ke proper monochrome PNG kalau lo nanti aktifin push beneran.
 self.addEventListener("push", (event) => {
   const data = event.data?.json() || {};
   const title = data.title || "Notification";
   const options = {
     body: data.body || "You have a new notification",
-    icon: "/branding/icon-192.png",
-    badge: "/branding/icon-72.png",
+    icon: "/branding/favicon-196x196.png",
+    badge: "/branding/favicon-96x96.png",
     vibrate: [200, 100, 200],
     tag: data.tag || "general",
     requireInteraction: false,

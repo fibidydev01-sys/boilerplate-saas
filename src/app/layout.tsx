@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/core/auth";
-import { OfflineDetector } from "@/core/components";
+import { OfflineDetector, ServiceWorkerRegister } from "@/core/components";
 import { LocaleProvider } from "@/core/i18n";
 import { getServerLocale } from "@/core/i18n/get-locale";
 import { brandingConfig } from "@/config";
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   /**
    * Icons metadata — listing eksplisit ke file yang ADA di public/branding/.
    *
-   * Folder lo punya hasil favicon generator standar:
+   * Folder boilerplate punya hasil favicon generator standar:
    *   - favicon-{16x16, 32x32, 96x96, 128, 196x196}.png + favicon.ico
    *   - apple-touch-icon-{57,60,72,76,114,120,144,152}x{N}.png  (8 sizes)
    *
@@ -84,14 +84,15 @@ export const viewport: Viewport = {
  * Root layout — async to read the locale cookie at request time.
  *
  * Provider stack (outermost → innermost):
- *   LocaleProvider  — owns active locale, must wrap every consumer of
- *                     useTranslation() / useLocale()
- *   AuthProvider    — currently a passthrough; placed inside Locale so
- *                     future auth UI can call t() if needed
- *   children        — page tree
- *   OfflineDetector — sibling under AuthProvider; uses t() so MUST be
- *                     inside LocaleProvider
- *   Toaster         — locale-agnostic; sits outside the auth tree
+ *   LocaleProvider         — owns active locale
+ *   AuthProvider           — currently a passthrough; placed inside Locale
+ *   children               — page tree
+ *   OfflineDetector        — sibling under AuthProvider; uses t()
+ *   Toaster                — locale-agnostic; sits outside the auth tree
+ *   ServiceWorkerRegister  — null-renderer client component, registers
+ *                            /sw.js after window.load (production only).
+ *                            Dibutuhkan supaya PWA install prompt muncul
+ *                            di Chrome / Edge / Android.
  */
 export default async function RootLayout({
   children,
@@ -138,6 +139,7 @@ export default async function RootLayout({
           </AuthProvider>
         </LocaleProvider>
         <Toaster position="top-center" richColors />
+        <ServiceWorkerRegister />
       </body>
     </html>
   );
