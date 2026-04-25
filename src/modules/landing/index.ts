@@ -33,7 +33,7 @@ export type {
 export * from "./content";
 
 // Library helpers
-export { formatPrice, scrollToSection } from "./lib";
+export { formatPrice, scrollToSection, interpolateBrand } from "./lib";
 
 // Layout components
 export {

@@ -8,7 +8,6 @@ import { interpolateBrand } from "../../lib";
 import { AvatarStack, TrustBadge } from "../primitives";
 
 export function HeroSection() {
-  // Interpolate {appName} placeholders → brandingConfig.name
   const content = interpolateBrand(heroContent, brandingConfig.name);
 
   return (

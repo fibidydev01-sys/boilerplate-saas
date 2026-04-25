@@ -14,8 +14,7 @@ export const brandingConfig = {
    * - Meta tags
    * - PWA install prompt
    * - Welcome messages
-   * - Legal pages (interpolated via {appName} placeholder)
-   * - Marketing content (interpolated via {appName} placeholder)
+   * - Legal & marketing content (interpolated via {appName} placeholder)
    */
   name: process.env.NEXT_PUBLIC_APP_NAME ?? "My App",
 
@@ -23,9 +22,9 @@ export const brandingConfig = {
    * Versi pendek dari nama. Muncul di:
    * - Sidebar logo text
    * - Header
-   * - Marketing header & inline buttons ("Get {shortName}")
    * - PWA short_name (home screen icon)
    * - Apple Web App title
+   * - Inline button labels (e.g. "Get {shortName}")
    */
   shortName: process.env.NEXT_PUBLIC_APP_SHORT_NAME ?? "App",
 
@@ -34,7 +33,6 @@ export const brandingConfig = {
    * - Meta description (SEO)
    * - Login page subtitle
    * - PWA description
-   * - Marketing layout meta description
    */
   description:
     process.env.NEXT_PUBLIC_APP_DESCRIPTION ?? "A modern web application",
@@ -47,7 +45,7 @@ export const brandingConfig = {
   /**
    * Contact email exposed pada legal pages, footer, dan halaman support.
    * Single source of truth — kalau diubah di .env, otomatis ke-update
-   * di semua 5 dokumen legal + footer link.
+   * di semua 5 dokumen legal + footer.
    */
   supportEmail:
     process.env.NEXT_PUBLIC_APP_SUPPORT_EMAIL ?? "admin@fibidy.com",

@@ -21,7 +21,6 @@ export function MarketingHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const cta = user ? headerContent.ctaLoggedIn : headerContent.ctaLoggedOut;
-  const purchaseLabel = `Get ${brandingConfig.shortName}`;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-md">
@@ -55,7 +54,7 @@ export function MarketingHeader() {
           </Button>
           {!user ? (
             <Button asChild size="sm">
-              <Link href="/pricing">{purchaseLabel}</Link>
+              <Link href="/pricing">Get {brandingConfig.shortName}</Link>
             </Button>
           ) : null}
         </div>
@@ -88,7 +87,7 @@ export function MarketingHeader() {
                 {!user ? (
                   <Button asChild className="w-full">
                     <Link href="/pricing" onClick={() => setMobileOpen(false)}>
-                      {purchaseLabel}
+                      Get {brandingConfig.shortName}
                     </Link>
                   </Button>
                 ) : null}

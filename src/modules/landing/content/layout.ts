@@ -2,10 +2,12 @@ import { brandingConfig } from "@/config";
 import type { FinalCtaContent, HeaderContent, FooterContent } from "../types";
 
 /**
- * Final CTA section content.
+ * Layout content (header, footer, final CTA).
  *
  * Brand name uses `{appName}` placeholder — interpolated at render time.
+ * Support email is read from `brandingConfig.supportEmail` (env-driven).
  */
+
 export const finalCtaContent: FinalCtaContent = {
   heading: "Save time, money, and headaches.",
   subtitle:
@@ -16,11 +18,6 @@ export const finalCtaContent: FinalCtaContent = {
   },
 };
 
-/**
- * Header content.
- *
- * Brand name uses `{appName}` placeholder — interpolated at render time.
- */
 export const headerContent: HeaderContent = {
   navItems: [
     { label: "Features", href: "/#features" },
@@ -39,13 +36,6 @@ export const headerContent: HeaderContent = {
   },
 };
 
-/**
- * Footer content.
- *
- * - Tagline & copyright: brand-neutral
- * - Support email link: env-driven via `brandingConfig.supportEmail`
- * - Legal links: static slug list (titles handled by legal-sidebar)
- */
 export const footerContent: FooterContent = {
   tagline: "The production-ready Next.js 16 boilerplate for indie SaaS.",
   copyrightYear: new Date().getFullYear(),

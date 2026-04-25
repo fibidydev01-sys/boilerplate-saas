@@ -1,11 +1,13 @@
 import type { TestimonialsContent } from "../types";
 
 /**
+ * Testimonials section.
+ *
+ * Brand name uses `{appName}` placeholder — interpolated at render time.
+ *
  * PLACEHOLDER CONTENT — replace before publish.
  * All testimonials below are fabricated for layout purposes.
  * Delete them or replace with real customer quotes before going live.
- *
- * Brand name uses `{appName}` placeholder — interpolated at render time.
  */
 export const testimonialsContent: TestimonialsContent = {
   eyebrow: "Testimonials",

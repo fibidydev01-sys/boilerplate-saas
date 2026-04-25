@@ -1,7 +1,7 @@
 import type { FaqContent } from "../types";
 
 /**
- * FAQ section content.
+ * FAQ content.
  *
  * Brand name uses `{appName}` placeholder — interpolated at render time.
  */
@@ -22,7 +22,7 @@ export const faqContent: FaqContent = {
     {
       question: "Do I get lifetime access and updates?",
       answer:
-        "Yes. One payment. Every future update is included. When a security patch ships or a dependency gets bumped, it appears in your library automatically.",
+        "Yes. One payment. Every future update is included. When a security patch ships or a dependency gets bumped, it appears in your purchase library automatically.",
     },
     {
       question: "What is the license?",

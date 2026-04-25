@@ -1,10 +1,12 @@
 import type { ShowcaseContent } from "../types";
 
 /**
- * PLACEHOLDER CONTENT — replace before publish.
- * Fill in with real products once customers start shipping.
+ * Showcase section.
  *
  * Brand name uses `{appName}` placeholder — interpolated at render time.
+ *
+ * PLACEHOLDER CONTENT — replace before publish.
+ * Fill in with real products once customers start shipping.
  */
 export const showcaseContent: ShowcaseContent = {
   eyebrow: "Showcase",

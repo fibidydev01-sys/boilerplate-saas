@@ -1,17 +1,16 @@
 import type { PricingContent } from "../types";
 
 /**
- * Single tier pricing. $139 launch price, originally $189.
+ * Pricing section.
  *
  * Brand name uses `{appName}` placeholder — interpolated at render time.
  *
- * NOTE on `cta.href`:
- *   This is a boilerplate. The default `#` href is intentional — buyers
- *   replace it with their own checkout URL (Gumroad, Lemon Squeezy direct,
- *   Stripe, etc.) before publish. To keep the value env-driven across
- *   deployments, you can also wire it to a `brandingConfig.purchaseUrl`
- *   field — that's left as an extension point so each buyer chooses their
- *   own payment provider.
+ * NOTE on cta.href:
+ *   The default `"#pricing"` is an in-page anchor. Replace with your real
+ *   purchase URL (Gumroad, Lemon Squeezy, Stripe Payment Link, etc.) when
+ *   you set up your sales channel.
+ *
+ * Single tier pricing. $139 launch price, originally $189.
  */
 export const pricingContent: PricingContent = {
   eyebrow: "Pricing",
@@ -39,12 +38,12 @@ export const pricingContent: PricingContent = {
         "Fourteen-day refund window",
       ],
       cta: {
+        // TODO: replace with your purchase URL (Gumroad / Lemon Squeezy / Stripe link)
         label: "Get {appName}",
-        // TODO: replace with your own checkout URL before publish
-        href: "#",
-        external: true,
+        href: "#pricing",
       },
-      footnote: "Pay once. Lifetime updates. Reference-grade documentation included.",
+      footnote:
+        "Pay once. Lifetime updates. Reference-grade documentation included.",
     },
   ],
 };

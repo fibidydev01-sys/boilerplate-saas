@@ -3,8 +3,7 @@ import { FaqSection, FinalCtaSection, PricingSection } from "@/modules/landing";
 
 export const metadata: Metadata = {
   title: "Pricing",
-  description:
-    "One price. Everything included. Pay once, get lifetime updates.",
+  description: "One price. Lifetime updates. Everything included.",
 };
 
 export default function PricingPage() {

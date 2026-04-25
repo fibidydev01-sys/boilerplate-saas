@@ -4,7 +4,6 @@ import type { HeroContent } from "../types";
  * Hero section content.
  *
  * Brand name uses `{appName}` placeholder — interpolated at render time.
- * No direct `brandingConfig` import → keeps content data pure.
  */
 export const heroContent: HeroContent = {
   badge: "One price. Everything included. $139.",
