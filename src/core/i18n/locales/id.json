@@ -191,6 +191,17 @@
     "disconnected": "Tidak ada koneksi internet",
     "reconnected": "Koneksi internet tersambung kembali"
   },
+  "pwa": {
+    "install": {
+      "title": "Pasang {appName}",
+      "description": "Akses lebih cepat, bisa offline, dan langsung dari layar utama.",
+      "button": "Pasang aplikasi",
+      "dismiss": "Tutup",
+      "iosTitle": "Tambah ke Layar Utama",
+      "iosStep1": "Ketuk tombol Bagikan di bawah Safari",
+      "iosStep2": "Scroll ke bawah, ketuk \"Tambah ke Layar Utama\""
+    }
+  },
   "commerce": {
     "pageTitle": "Produk",
     "pageSubtitle": "Katalog produk dari toko Lemon Squeezy Anda",

@@ -2,7 +2,11 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/core/auth";
-import { OfflineDetector, ServiceWorkerRegister } from "@/core/components";
+import {
+  OfflineDetector,
+  PWAInstallBanner,
+  ServiceWorkerRegister,
+} from "@/core/components";
 import { LocaleProvider } from "@/core/i18n";
 import { getServerLocale } from "@/core/i18n/get-locale";
 import { brandingConfig } from "@/config";
@@ -31,10 +35,6 @@ export const metadata: Metadata = {
    *   - apple-touch-icon-{57,60,72,76,114,120,144,152}x{N}.png  (8 sizes)
    *
    * Browser akan pilih icon paling cocok berdasarkan size hint + DPR device.
-   * Listing lengkap ini lebih baik daripada satu icon raksasa karena:
-   *   - iOS Safari ngambil apple-touch-icon yang exact match size device
-   *   - Android Chrome pakai favicon-196x196 untuk pinned shortcut
-   *   - Browser desktop pakai favicon-32x32 untuk tab
    */
   icons: {
     icon: [
@@ -84,15 +84,16 @@ export const viewport: Viewport = {
  * Root layout — async to read the locale cookie at request time.
  *
  * Provider stack (outermost → innermost):
- *   LocaleProvider         — owns active locale
- *   AuthProvider           — currently a passthrough; placed inside Locale
+ *   LocaleProvider         — owns active locale + i18n t() context
+ *   AuthProvider           — passthrough; placed inside Locale
  *   children               — page tree
  *   OfflineDetector        — sibling under AuthProvider; uses t()
+ *   PWAInstallBanner       — sibling inside LocaleProvider (uses t());
+ *                            mounted di sini supaya muncul di seluruh app
+ *                            (marketing + auth + dashboard).
  *   Toaster                — locale-agnostic; sits outside the auth tree
  *   ServiceWorkerRegister  — null-renderer client component, registers
  *                            /sw.js after window.load (production only).
- *                            Dibutuhkan supaya PWA install prompt muncul
- *                            di Chrome / Edge / Android.
  */
 export default async function RootLayout({
   children,
@@ -105,8 +106,7 @@ export default async function RootLayout({
     <html lang={locale} suppressHydrationWarning>
       <head>
         {/* Apple-touch-icon fallback tag (no-size) — iOS akan pakai ini kalau
-            gak nemu match dari metadata.apple array di atas. Pointing ke
-            size terbesar yang tersedia (152x152). */}
+            gak nemu match dari metadata.apple array di atas. */}
         <link
           rel="apple-touch-icon"
           href={brandingConfig.assets.appleTouchIcon}
@@ -137,6 +137,7 @@ export default async function RootLayout({
             {children}
             <OfflineDetector />
           </AuthProvider>
+          <PWAInstallBanner />
         </LocaleProvider>
         <Toaster position="top-center" richColors />
         <ServiceWorkerRegister />
