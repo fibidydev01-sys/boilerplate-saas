@@ -31,12 +31,30 @@
  *   `i18n/index.ts` re-exports `useTranslation` and `useLocale` from
  *   here as a convenience — existing callsites that do
  *   `import { useTranslation } from "@/core/i18n"` continue to work.
+ *
+ * IMPORTANT — t identity stability:
+ *   `t` is wrapped in useCallback bound to `locale`, and the returned
+ *   object is memoized via useMemo. This guarantees that as long as
+ *   `locale` doesn't change, `t` keeps the same reference across renders.
+ *
+ *   This matters for consumers that put `t` in useCallback / useEffect
+ *   dependency arrays (e.g. ProductsGrid uses `t` inside `mapErrorCode`,
+ *   which feeds into `fetchProducts`, which feeds into a `useEffect`).
+ *   Without identity stability, every render minted a new `t` →
+ *   new `mapErrorCode` → new `fetchProducts` → effect re-fires →
+ *   setState → render → infinite loop, observable as runaway requests
+ *   in the Network tab.
+ *
+ *   Don't "fix" loops at the consumer by dropping `t` from deps — that
+ *   masks bugs and fights eslint-plugin-react-hooks. Keep the fix here,
+ *   one place, for every consumer.
  */
 
 import {
   createContext,
   useCallback,
   useContext,
+  useMemo,
   useState,
   useTransition,
   type ReactNode,
@@ -103,8 +121,15 @@ export function LocaleProvider({ children, initialLocale }: LocaleProviderProps)
     [router]
   );
 
+  // Memoize the context value object so consumers using `useLocale()`
+  // don't re-render on unrelated parent re-renders.
+  const value = useMemo<LocaleContextValue>(
+    () => ({ locale, setLocale, isPending }),
+    [locale, setLocale, isPending]
+  );
+
   return (
-    <LocaleContext.Provider value={{ locale, setLocale, isPending }}>
+    <LocaleContext.Provider value={value}>
       {children}
     </LocaleContext.Provider>
   );
@@ -125,10 +150,12 @@ export function useLocale(): LocaleContextValue {
 
 /**
  * Client translation hook. Reads active locale from context and binds
- * it to a curried `t` function.
+ * it to a stable `t` function.
  *
  * Returns:
- *   - t      : translate function with active locale pre-applied
+ *   - t      : translate function with active locale pre-applied.
+ *              IDENTITY STABLE across renders as long as locale doesn't
+ *              change — safe to use in useCallback/useEffect deps.
  *   - locale : current locale code (for cases like `<html lang>`,
  *              date formatting, etc.)
  *
@@ -137,18 +164,28 @@ export function useLocale(): LocaleContextValue {
  *   const { t } = useTranslation();
  *   <h1>{t("dashboard.pageTitle")}</h1>
  *
- * Breaking change vs. previous version:
+ * Breaking change vs. the original version:
  *   The old hook accepted an optional `locale?` argument. The new one
  *   does not — locale comes from context. No callsites in the current
- *   codebase pass that argument, so this is a no-op migration in practice.
+ *   codebase pass that argument, so this is a no-op migration.
  */
 export function useTranslation() {
   const { locale } = useLocale();
-  return {
-    locale,
-    t: (
+
+  // Stable t — only re-creates when locale changes. Critical for any
+  // consumer that puts t in dependency arrays. See file header for the
+  // bug class this prevents.
+  const t = useCallback(
+    (
       key: TranslationKey | string,
       params?: Record<string, string | number>
     ) => translate(key, params, locale),
-  };
+    [locale]
+  );
+
+  // Memoize the returned object so destructuring patterns like
+  // `const { t } = useTranslation()` get a stable reference, and so
+  // that consumers comparing the whole object (rare but possible) see
+  // referential equality across renders.
+  return useMemo(() => ({ locale, t }), [locale, t]);
 }
