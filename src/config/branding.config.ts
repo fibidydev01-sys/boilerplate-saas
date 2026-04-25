@@ -61,6 +61,22 @@ export const brandingConfig = {
     process.env.NEXT_PUBLIC_APP_LEGAL_JURISDICTION ?? "Indonesia",
 
   /**
+   * Purchase URL — link checkout eksternal (Gumroad / Lemon Squeezy /
+   * Stripe Payment Link / dll).
+   *
+   * Dipake di pricing card "Buy" button. Kalau kosong, button fallback
+   * ke "#pricing" anchor (aman, gak broken).
+   *
+   * Contoh value:
+   *   "https://yourname.gumroad.com/l/your-product"
+   *   "https://yourapp.lemonsqueezy.com/buy/abc-123"
+   *   "https://buy.stripe.com/abc123"
+   *
+   * Default: "" (empty) — buyer wajib set ini saat go-live.
+   */
+  purchaseUrl: process.env.NEXT_PUBLIC_APP_PURCHASE_URL ?? "",
+
+  /**
    * Asset paths. Replace file di public/branding/ untuk ganti.
    *
    * Required files (untuk PWA + fallback icons):

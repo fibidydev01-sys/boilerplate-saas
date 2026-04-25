@@ -1,3 +1,4 @@
+import { brandingConfig } from "@/config";
 import type { PricingContent } from "../types";
 
 /**
@@ -5,13 +6,19 @@ import type { PricingContent } from "../types";
  *
  * Brand name uses `{appName}` placeholder — interpolated at render time.
  *
- * NOTE on cta.href:
- *   The default `"#pricing"` is an in-page anchor. Replace with your real
- *   purchase URL (Gumroad, Lemon Squeezy, Stripe Payment Link, etc.) when
- *   you set up your sales channel.
+ * Purchase button (`tier.cta`) wires to `brandingConfig.purchaseUrl`:
+ *   - Set `NEXT_PUBLIC_APP_PURCHASE_URL` to your Gumroad / Lemon Squeezy /
+ *     Stripe checkout link.
+ *   - When empty (default), button falls back to `#pricing` anchor — safe
+ *     placeholder that won't break the layout.
+ *   - `external: true` is auto-set when a real URL exists, so the button
+ *     opens checkout in a new tab.
  *
  * Single tier pricing. $139 launch price, originally $189.
  */
+const purchaseHref = brandingConfig.purchaseUrl || "#pricing";
+const isExternalCheckout = Boolean(brandingConfig.purchaseUrl);
+
 export const pricingContent: PricingContent = {
   eyebrow: "Pricing",
   heading: "One price. Everything included.",
@@ -38,9 +45,9 @@ export const pricingContent: PricingContent = {
         "Fourteen-day refund window",
       ],
       cta: {
-        // TODO: replace with your purchase URL (Gumroad / Lemon Squeezy / Stripe link)
         label: "Get {appName}",
-        href: "#pricing",
+        href: purchaseHref,
+        external: isExternalCheckout,
       },
       footnote:
         "Pay once. Lifetime updates. Reference-grade documentation included.",
