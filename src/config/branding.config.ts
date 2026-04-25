@@ -44,54 +44,59 @@ export const brandingConfig = {
 
   /**
    * Contact email exposed pada legal pages, footer, dan halaman support.
-   * Single source of truth — kalau diubah di .env, otomatis ke-update
-   * di semua 5 dokumen legal + footer.
    */
   supportEmail:
     process.env.NEXT_PUBLIC_APP_SUPPORT_EMAIL ?? "admin@fibidy.com",
 
   /**
    * Governing law jurisdiction untuk License dan Terms of Service.
-   * Free-form string — biasanya nama negara, bisa juga state/province
-   * (e.g. "Delaware, United States", "Singapore", "England and Wales").
-   *
-   * Dipake di dua klausa: governing law + dispute resolution venue.
    */
   legalJurisdiction:
     process.env.NEXT_PUBLIC_APP_LEGAL_JURISDICTION ?? "Indonesia",
 
   /**
-   * Purchase URL — link checkout eksternal (Gumroad / Lemon Squeezy /
-   * Stripe Payment Link / dll).
-   *
-   * Dipake di pricing card "Buy" button. Kalau kosong, button fallback
-   * ke "#pricing" anchor (aman, gak broken).
-   *
-   * Default: "" (empty) — buyer wajib set ini saat go-live.
+   * Purchase URL — link checkout eksternal (Gumroad / Lemon Squeezy / dll).
+   * Kosong = pricing button fallback ke "#pricing" anchor.
    */
   purchaseUrl: process.env.NEXT_PUBLIC_APP_PURCHASE_URL ?? "",
 
   /**
-   * Asset paths. Replace file di public/branding/ untuk ganti.
+   * Asset paths — dipetakan ke file yang ADA di public/branding/.
    *
-   * Required files (untuk PWA + fallback icons):
-   *   /branding/logo.png              — 192x192 (main UI logo)
-   *   /branding/logo-sm.png           — 96x96  (compact UI logo)
-   *   /branding/favicon.ico           — multi-size favicon
-   *   /branding/apple-touch-icon.png  — 180x180 (iOS home screen)
-   *   /branding/icon-{48,72,96,144,192,512}.png — PWA manifest icons
+   * Folder lo punya hasil generator favicon standar:
+   *   - favicon.ico
+   *   - favicon-{16x16, 32x32, 96x96, 128, 196x196}.png
+   *   - apple-touch-icon-{57,60,72,76,114,120,144,152}x{N}.png
+   *   - mstile-{70,144,150,310,310x150}.png   (Windows pinned tile, opt-in)
+   *
+   * Mapping di sini:
+   *   - `logo`           → favicon terbesar (196x196), dipake di slot UI 40-64px
+   *                        (auth panel kiri, FinalCTA section).
+   *   - `logoSmall`      → favicon 96x96, dipake di slot UI 32px
+   *                        (sidebar, header dashboard, marketing header/footer).
+   *   - `favicon`        → favicon.ico legacy (tab browser).
+   *   - `appleTouchIcon` → apple-touch-icon-152x152.png (size terbesar yang lo
+   *                        punya, dipake sebagai fallback `<link rel="apple-touch-icon">`).
+   *
+   * Catatan: nama property "logo" / "logoSmall" sengaja dipertahankan walau
+   * file fisiknya favicon — UI component pakai property ini sebagai brand mark.
+   * Selama image-nya square dan crisp di ukuran 32-64px, dia berfungsi sebagai
+   * UI logo. Mau ganti ke vector logo asli nanti? Drop `logo.png` ke folder,
+   * update path-nya di sini.
+   *
+   * Manifest icons + apple touch icon multi-size dilist eksplisit di
+   * `src/app/manifest.ts` dan `src/app/layout.tsx` (icons metadata).
    *
    * authBackground:
    *   Background image untuk auth pages (50/50 split layout).
-   *   Tampil di panel kiri di desktop, hidden di mobile.
    *   Bisa pake remote URL (CDN) atau local path (/branding/auth-bg.jpg).
-   *   Default: Cloudinary stock — buyer ganti dengan brand-specific image.
+   *   Default: Cloudinary stock — buyer ganti ke brand-specific image.
    */
   assets: {
-    logo: "/branding/logo.png",
-    logoSmall: "/branding/logo-sm.png",
+    logo: "/branding/favicon-196x196.png",
+    logoSmall: "/branding/favicon-96x96.png",
     favicon: "/branding/favicon.ico",
-    appleTouchIcon: "/branding/apple-touch-icon.png",
+    appleTouchIcon: "/branding/apple-touch-icon-152x152.png",
     authBackground:
       process.env.NEXT_PUBLIC_APP_AUTH_BG ??
       "https://res.cloudinary.com/dxxds8jkx/image/upload/v1777108648/background_h7lslb.jpg",
@@ -99,13 +104,6 @@ export const brandingConfig = {
 
   /**
    * Theme colors & PWA display config.
-   *
-   * - primaryColor    : warna utama, di-reflect ke <meta theme-color>
-   *                     (chrome bar warna di mobile browser)
-   * - backgroundColor : warna splash screen PWA (saat app di-launch)
-   * - themeColorMeta  : alias primaryColor untuk <meta> tags
-   *
-   * Warna UI di component pakai CSS variable --primary di globals.css.
    */
   theme: {
     primaryColor: process.env.NEXT_PUBLIC_APP_PRIMARY_COLOR ?? "#16a34a",
@@ -115,12 +113,6 @@ export const brandingConfig = {
 
   /**
    * SEO & meta information.
-   *
-   * - keywords : comma-separated di env, di-parse ke array
-   * - author   : nama pembuat (opsional, tampil di <meta name="author">)
-   * - category : kategori PWA (productivity, social, education, dll)
-   * - lang     : BCP-47 language tag untuk <html lang> & manifest lang
-   *              Contoh: "id-ID", "en-US", "ja-JP"
    */
   meta: {
     keywords: (process.env.NEXT_PUBLIC_APP_KEYWORDS ?? "app,web,platform")

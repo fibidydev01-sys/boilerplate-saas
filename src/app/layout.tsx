@@ -23,18 +23,37 @@ export const metadata: Metadata = {
     title: brandingConfig.shortName,
   },
 
+  /**
+   * Icons metadata — listing eksplisit ke file yang ADA di public/branding/.
+   *
+   * Folder lo punya hasil favicon generator standar:
+   *   - favicon-{16x16, 32x32, 96x96, 128, 196x196}.png + favicon.ico
+   *   - apple-touch-icon-{57,60,72,76,114,120,144,152}x{N}.png  (8 sizes)
+   *
+   * Browser akan pilih icon paling cocok berdasarkan size hint + DPR device.
+   * Listing lengkap ini lebih baik daripada satu icon raksasa karena:
+   *   - iOS Safari ngambil apple-touch-icon yang exact match size device
+   *   - Android Chrome pakai favicon-196x196 untuk pinned shortcut
+   *   - Browser desktop pakai favicon-32x32 untuk tab
+   */
   icons: {
     icon: [
       { url: brandingConfig.assets.favicon },
-      { url: brandingConfig.assets.logoSmall, sizes: "96x96", type: "image/png" },
-      { url: brandingConfig.assets.logo, sizes: "192x192", type: "image/png" },
+      { url: "/branding/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/branding/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/branding/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+      { url: "/branding/favicon-128.png", sizes: "128x128", type: "image/png" },
+      { url: "/branding/favicon-196x196.png", sizes: "196x196", type: "image/png" },
     ],
     apple: [
-      {
-        url: brandingConfig.assets.appleTouchIcon,
-        sizes: "180x180",
-        type: "image/png",
-      },
+      { url: "/branding/apple-touch-icon-57x57.png", sizes: "57x57", type: "image/png" },
+      { url: "/branding/apple-touch-icon-60x60.png", sizes: "60x60", type: "image/png" },
+      { url: "/branding/apple-touch-icon-72x72.png", sizes: "72x72", type: "image/png" },
+      { url: "/branding/apple-touch-icon-76x76.png", sizes: "76x76", type: "image/png" },
+      { url: "/branding/apple-touch-icon-114x114.png", sizes: "114x114", type: "image/png" },
+      { url: "/branding/apple-touch-icon-120x120.png", sizes: "120x120", type: "image/png" },
+      { url: "/branding/apple-touch-icon-144x144.png", sizes: "144x144", type: "image/png" },
+      { url: "/branding/apple-touch-icon-152x152.png", sizes: "152x152", type: "image/png" },
     ],
   },
 
@@ -64,12 +83,6 @@ export const viewport: Viewport = {
 /**
  * Root layout — async to read the locale cookie at request time.
  *
- * Two important effects of going async + reading cookies here:
- *   1. <html lang> follows the user's selected locale (a11y + SEO win)
- *   2. Every page becomes dynamic by default (cookies() opts out of
- *      static rendering). Acceptable trade-off for a dashboard-heavy
- *      app where most pages are auth-gated and dynamic anyway.
- *
  * Provider stack (outermost → innermost):
  *   LocaleProvider  — owns active locale, must wrap every consumer of
  *                     useTranslation() / useLocale()
@@ -90,6 +103,9 @@ export default async function RootLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
+        {/* Apple-touch-icon fallback tag (no-size) — iOS akan pakai ini kalau
+            gak nemu match dari metadata.apple array di atas. Pointing ke
+            size terbesar yang tersedia (152x152). */}
         <link
           rel="apple-touch-icon"
           href={brandingConfig.assets.appleTouchIcon}
