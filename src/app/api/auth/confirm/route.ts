@@ -13,9 +13,6 @@
  * Link format dari email (dibangun di `shared/email/send-auth-email.tsx`):
  *   {SITE_URL}/api/auth/confirm?token_hash=xxx&type=signup&next=/dashboard
  *
- * ⚠️ CRITICAL: Template Supabase harus pakai `{{ .TokenHash }}`
- *              BUKAN `{{ .ConfirmationURL }}` (implicit flow, deprecated).
- *
  * Flow:
  *   1. Extract token_hash + type dari query
  *   2. supabase.auth.verifyOtp() → establish session
@@ -30,15 +27,21 @@
  *   - /confirm    → Email OTP    (pake `verifyOtp` + `token_hash` param)
  *   Mereka GAK BISA di-merge karena API Supabase-nya beda.
  *
- * Chain unwrap (important):
+ * Chain unwrap (penting):
  *   Form-form (register/forgot-password/magic-link) set `emailRedirectTo`
- *   ke `/api/auth/callback?next=X` — pattern dari PKCE era. Supabase forward
- *   itu ke sini sebagai `next`. Kalau kita redirect mentah-mentah, user
- *   landing di /callback tanpa `code` → error loop.
+ *   ke `/api/auth/callback?next=X` — pattern dari PKCE era. Supabase
+ *   forward itu ke sini sebagai `next`. Kalau kita redirect mentah-mentah,
+ *   user landing di /callback tanpa `code` → error loop. Solusi: unwrap
+ *   dulu sebelum resolve — ambil inner `next`-nya aja. Non-invasive,
+ *   form existing gak perlu diubah.
  *
- *   Solusi: sebelum resolve redirect, kita unwrap — kalau `next` adalah
- *   /api/auth/callback URL, ambil inner `next`-nya aja. Non-invasive, form
- *   existing gak perlu diubah.
+ *   Kalau nanti form-form di-refactor set `emailRedirectTo` langsung ke
+ *   dest final, unwrap ini jadi no-op dan aman di-remove.
+ *
+ * RLS dependency:
+ *   verifyProfile() query ke user_profiles tunduk RLS. Policy admin
+ *   harus pake public.is_admin() (SECURITY DEFINER) — kalau inline
+ *   subquery, bakal 42P17 infinite recursion. Fix ada di setup.sql v2.
  */
 
 import { type EmailOtpType } from "@supabase/supabase-js";
@@ -59,9 +62,7 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type") as EmailOtpType | null;
   const rawNext = searchParams.get("next");
 
-  // Unwrap /api/auth/callback?next=X legacy chain. Kalau form-form nanti
-  // di-refactor supaya `emailRedirectTo` point ke dest langsung, unwrap
-  // ini jadi no-op dan aman untuk di-remove.
+  // Unwrap /api/auth/callback?next=X legacy chain sebelum resolve redirect.
   const next = unwrapCallbackNext(rawNext);
 
   // Helper: build absolute redirect URL — honor forwarded host di prod

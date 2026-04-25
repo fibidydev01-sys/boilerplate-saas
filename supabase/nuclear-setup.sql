@@ -7,11 +7,25 @@
 --
 --  Status pengembangan: 🔒 FINAL di Phase 2. Tidak ada Phase 3.
 --
+--  ─────────────────────────────────────────────────────────────────
+--  📝 CHANGELOG (penting — jangan revert):
+--
+--  v2 (RLS recursion fix):
+--    Policy admin di user_profiles sebelumnya pakai subquery ke
+--    user_profiles sendiri di USING clause → PostgreSQL 42P17
+--    infinite recursion. Fix: pakai is_admin() helper (SECURITY
+--    DEFINER) yang bypass RLS saat dipanggil — gak trigger policy
+--    lagi. Function udah ada sejak v1, cuma gak dipake di policy.
+--    Sekalian activity_logs + storage admin policy juga diarahkan
+--    ke is_admin() biar konsisten + lebih performant (query plan
+--    cacheable karena STABLE).
+--  ─────────────────────────────────────────────────────────────────
+--
 --  Scope:
 --    SECTION A. AUTH FOUNDATION                  (Phase 0 + 1)
 --      - user_profiles, activity_logs
 --      - Triggers: handle_new_user (OAuth-aware), handle_updated_at
---      - Helper: is_admin()
+--      - Helper: is_admin(), is_admin(uuid)
 --      - RLS policies
 --      - Storage bucket: avatars
 --
@@ -136,6 +150,7 @@ DROP FUNCTION IF EXISTS public.handle_new_user()    CASCADE;
 DROP FUNCTION IF EXISTS public.handle_updated_at()  CASCADE;
 DROP FUNCTION IF EXISTS public.touch_updated_at()   CASCADE;
 DROP FUNCTION IF EXISTS public.set_updated_at()     CASCADE;
+DROP FUNCTION IF EXISTS public.is_admin()           CASCADE;
 DROP FUNCTION IF EXISTS public.is_admin(uuid)       CASCADE;
 
 
@@ -216,8 +231,7 @@ COMMENT ON COLUMN public.activity_logs.action IS
 -- A.3  Helper functions
 -- ---------------------------------------------------------------------
 
--- Auto-update `updated_at` timestamp. Nama function: handle_updated_at
--- (konsisten untuk semua trigger di file ini).
+-- Auto-update `updated_at` timestamp.
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -228,10 +242,34 @@ BEGIN
 END;
 $$;
 
--- Admin check — security-definer supaya gak recursion di RLS.
--- Dipakai dari application layer (service). Policy RLS di bawah
--- TIDAK memanggil fungsi ini — pakai subquery langsung untuk menghindari
--- dependency circular saat parsing policy.
+-- ─────────────────────────────────────────────────────────────────────
+-- Admin check (SECURITY DEFINER — kunci anti-recursion di RLS)
+-- ─────────────────────────────────────────────────────────────────────
+--
+--  WHY SECURITY DEFINER:
+--    Pas function ini dipanggil dari USING clause policy di
+--    user_profiles, query SELECT di dalam function run as function
+--    owner (postgres, yang BYPASSRLS). Jadi gak trigger policy di
+--    user_profiles lagi → no recursion.
+--
+--    Kalau kita inline subquery di policy (tanpa function wrapper),
+--    subquery itu run as current user → trigger policy di table yang
+--    sama → rekursi → error 42P17 "infinite recursion detected in
+--    policy for relation user_profiles".
+--
+--  VARIAN:
+--    is_admin()      → cek current user (auth.uid())
+--    is_admin(uuid)  → cek user tertentu (dipake dari app layer)
+--
+--  STABLE: Function returns same result for same input within
+--  transaction → Postgres query planner boleh cache.
+--
+--  SET search_path = public: Prevent search_path injection kalau
+--  ada attacker yang bisa set search_path.
+-- ─────────────────────────────────────────────────────────────────────
+
+-- Parameterized variant — cek user tertentu.
+-- Dipakai dari application layer (service).
 CREATE OR REPLACE FUNCTION public.is_admin(check_user_id uuid)
 RETURNS boolean
 LANGUAGE sql
@@ -247,6 +285,29 @@ AS $$
       AND is_active = true
   );
 $$;
+
+-- No-arg variant — cek current user. Ergonomic di RLS policy.
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.user_profiles
+    WHERE id = auth.uid()
+      AND role IN ('super_admin', 'admin')
+      AND is_active = true
+  );
+$$;
+
+-- Grant execute ke role yang butuh — authenticated & anon supaya
+-- callable dari RLS context. Tanpa grant, function invisible dari
+-- PostgREST context walaupun SECURITY DEFINER.
+GRANT EXECUTE ON FUNCTION public.is_admin()     TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.is_admin(uuid) TO authenticated, anon;
 
 -- ---------------------------------------------------------------------
 -- A.4  handle_new_user — OAuth-aware profile auto-provisioning
@@ -344,13 +405,26 @@ CREATE TRIGGER on_auth_user_created
 -- ---------------------------------------------------------------------
 -- A.6  Row Level Security — auth tables
 -- ---------------------------------------------------------------------
+--  CRITICAL: Policy admin di user_profiles HARUS pakai public.is_admin()
+--  (SECURITY DEFINER), BUKAN inline subquery ke user_profiles.
+--
+--  SALAH (infinite recursion — error 42P17):
+--    USING (EXISTS (SELECT 1 FROM user_profiles WHERE id=auth.uid() ...))
+--
+--  BENAR:
+--    USING (public.is_admin())
+--
+--  Policy di table lain (activity_logs, storage.objects) secara teknis
+--  gak bakal recursive karena mereka query ke user_profiles (beda
+--  table). Tapi tetep pake is_admin() biar:
+--    1. Konsisten
+--    2. Query plan cacheable (function STABLE)
+--    3. Satu source of truth untuk definisi "admin"
+-- ---------------------------------------------------------------------
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 
 -- ---- user_profiles policies ----
--- Catatan: admin policy pakai subquery langsung ke user_profiles,
--- BUKAN memanggil is_admin(). Ini mencegah error "relation does not exist"
--- yang bisa muncul saat PostgreSQL mem-parse/compile policy.
 
 CREATE POLICY "user_profiles_self_select"
   ON public.user_profiles FOR SELECT
@@ -358,14 +432,7 @@ CREATE POLICY "user_profiles_self_select"
 
 CREATE POLICY "user_profiles_admin_select_all"
   ON public.user_profiles FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.user_profiles
-      WHERE id = auth.uid()
-        AND role IN ('super_admin', 'admin')
-        AND is_active = true
-    )
-  );
+  USING (public.is_admin());
 
 CREATE POLICY "user_profiles_self_update"
   ON public.user_profiles FOR UPDATE
@@ -374,60 +441,26 @@ CREATE POLICY "user_profiles_self_update"
 
 CREATE POLICY "user_profiles_admin_update_all"
   ON public.user_profiles FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.user_profiles
-      WHERE id = auth.uid()
-        AND role IN ('super_admin', 'admin')
-        AND is_active = true
-    )
-  )
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.user_profiles
-      WHERE id = auth.uid()
-        AND role IN ('super_admin', 'admin')
-        AND is_active = true
-    )
-  );
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
 
 CREATE POLICY "user_profiles_admin_insert"
   ON public.user_profiles FOR INSERT
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.user_profiles
-      WHERE id = auth.uid()
-        AND role IN ('super_admin', 'admin')
-        AND is_active = true
-    )
-  );
+  WITH CHECK (public.is_admin());
 
 CREATE POLICY "user_profiles_admin_delete"
   ON public.user_profiles FOR DELETE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.user_profiles
-      WHERE id = auth.uid()
-        AND role IN ('super_admin', 'admin')
-        AND is_active = true
-    )
-  );
+  USING (public.is_admin());
 
 -- ---- activity_logs policies ----
+
 CREATE POLICY "activity_logs_self_select"
   ON public.activity_logs FOR SELECT
   USING (auth.uid() = user_id);
 
 CREATE POLICY "activity_logs_admin_select_all"
   ON public.activity_logs FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.user_profiles
-      WHERE id = auth.uid()
-        AND role IN ('super_admin', 'admin')
-        AND is_active = true
-    )
-  );
+  USING (public.is_admin());
 
 CREATE POLICY "activity_logs_authenticated_insert"
   ON public.activity_logs FOR INSERT
@@ -493,12 +526,7 @@ CREATE POLICY "avatars_admin_all"
   TO authenticated
   USING (
     bucket_id = 'avatars'
-    AND EXISTS (
-      SELECT 1 FROM public.user_profiles
-      WHERE id = auth.uid()
-        AND role IN ('super_admin', 'admin')
-        AND is_active = true
-    )
+    AND public.is_admin()
   );
 
 
@@ -971,6 +999,7 @@ DECLARE
   customers_count        integer;
   bucket_exists          boolean;
   admin_count            integer;
+  rls_self_check_ok      boolean;
 BEGIN
   SELECT count(*) INTO profile_count          FROM public.user_profiles;
   SELECT count(*) INTO activity_count         FROM public.activity_logs;
@@ -985,8 +1014,18 @@ BEGIN
   SELECT count(*) INTO admin_count FROM public.user_profiles
     WHERE role IN ('super_admin', 'admin') AND is_active = true;
 
+  -- RLS anti-recursion smoke test: panggil is_admin() dari context
+  -- postgres (BYPASSRLS). Kalau ini error, berarti function belum
+  -- ke-create sempurna atau ada syntax error.
+  BEGIN
+    PERFORM public.is_admin();
+    rls_self_check_ok := true;
+  EXCEPTION WHEN OTHERS THEN
+    rls_self_check_ok := false;
+  END;
+
   RAISE NOTICE '====================================================';
-  RAISE NOTICE '  SETUP COMPLETE — PHASE 0 + 1 + 2 (FINAL)';
+  RAISE NOTICE '  SETUP COMPLETE — PHASE 0 + 1 + 2 (FINAL, v2)';
   RAISE NOTICE '====================================================';
   RAISE NOTICE '  SECTION A — Auth Foundation (Phase 0+1)';
   RAISE NOTICE '    user_profiles              : % rows', profile_count;
@@ -994,6 +1033,8 @@ BEGIN
   RAISE NOTICE '    activity_logs              : % rows (reset)', activity_count;
   RAISE NOTICE '    avatars bucket             : %',
     CASE WHEN bucket_exists THEN 'ready ✓' ELSE 'MISSING ✗' END;
+  RAISE NOTICE '    is_admin() function        : %',
+    CASE WHEN rls_self_check_ok THEN 'callable ✓' ELSE 'ERROR ✗' END;
   RAISE NOTICE '';
   RAISE NOTICE '  SECTION B — Commerce Phase 1';
   RAISE NOTICE '    commerce_credentials       : % rows (reset)', credentials_count;
@@ -1067,7 +1108,7 @@ BEGIN
   RAISE NOTICE '      c. URL: {APP_URL}/api/auth/hooks/send-email';
   RAISE NOTICE '         (Dev: pakai ngrok tunnel)';
   RAISE NOTICE '      d. Copy generated secret (format: v1,whsec_xxx)';
-  RAISE NOTICE '         → simpan sebagai SEND_EMAIL_HOOK_SECRET';
+  RAISE NOTICE '         → simpan sebagai SUPABASE_AUTH_HOOK_SECRET';
   RAISE NOTICE '';
   RAISE NOTICE '      ⚠️  Setelah hook enabled, Supabase gak pake';
   RAISE NOTICE '         default SMTP lagi. Semua auth email via hook';

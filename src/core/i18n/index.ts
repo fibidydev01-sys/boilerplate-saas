@@ -3,9 +3,9 @@
  *
  * Design:
  * - Zero runtime dependency. Cuma JSON + function.
- * - Type-safe key lookup berdasarkan struktur id.json (source of truth).
+ * - Type-safe key lookup berdasarkan struktur en.json (source of truth).
  * - Support param interpolation: t("dashboard.welcomeMessage", { appName: "Acme" })
- * - Default locale diambil dari appConfig.locale.default.
+ * - Default locale diambil dari appConfig.locale.default (default: "en").
  *
  * Usage:
  *   import { t } from "@/core/i18n";
@@ -17,14 +17,20 @@
  *   const { t } = useTranslation();
  */
 
-import id from "./locales/id.json";
 import en from "./locales/en.json";
+import id from "./locales/id.json";
 import { appConfig, type Locale } from "@/config";
 
-const locales = { id, en } as const;
+const locales = { en, id } as const;
 
-/** Source dictionary — id.json jadi "contract" untuk key type safety. */
-type Dict = typeof id;
+/**
+ * Source dictionary — en.json jadi "contract" untuk key type safety.
+ *
+ * Kalau ada key yang ada di en tapi gak ada di id, t() bakal return
+ * key apa adanya (warned di dev). Sebaliknya: key id-only gak akan
+ * pernah ke-resolve karena type system gak tau soal mereka.
+ */
+type Dict = typeof en;
 
 /**
  * Recursive type yang generate semua dotted key dari nested JSON.
@@ -67,6 +73,11 @@ function interpolate(
  *
  * Accept `string` juga (bukan cuma TranslationKey) untuk graceful fallback.
  * Kalau key gak valid, return key itu sendiri + warn di dev.
+ *
+ * Resolution order:
+ *   1. Active locale (from param or appConfig.locale.default)
+ *   2. English fallback (always — it's the source of truth)
+ *   3. Return key as-is + dev warning
  */
 export function t(
   key: TranslationKey | string,
@@ -74,12 +85,13 @@ export function t(
   locale?: Locale
 ): string {
   const activeLocale = locale ?? (appConfig.locale.default as Locale);
-  const dict = locales[activeLocale] ?? locales.id;
+  const dict = locales[activeLocale] ?? locales.en;
 
   const value = resolveKey(dict, key);
 
-  if (value === undefined && activeLocale !== "id") {
-    const fallback = resolveKey(locales.id, key);
+  // Fallback to English if active locale lacks the key
+  if (value === undefined && activeLocale !== "en") {
+    const fallback = resolveKey(locales.en, key);
     if (fallback !== undefined) return interpolate(fallback, params);
   }
 

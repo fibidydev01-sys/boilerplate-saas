@@ -102,10 +102,13 @@ export const appConfig = {
 
   /**
    * Locale / i18n.
+   *
+   * Default: English. Indonesian tersedia sebagai secondary.
+   * Urutan di `available` = urutan tampil di language switcher.
    */
   locale: {
-    default: "id",
-    available: ["id", "en"] as const,
+    default: "en",
+    available: ["en", "id"] as const,
   },
 } as const;
 

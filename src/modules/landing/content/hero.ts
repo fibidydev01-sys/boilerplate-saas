@@ -1,16 +1,16 @@
 import type { HeroContent } from "../types";
 
 export const heroContent: HeroContent = {
-  badge: "Save $50 with the Launch Deal",
+  badge: "One price. Everything included. $139.",
   headline: {
-    prefix: "Launch your",
+    prefix: "Ship your",
     highlight: "SaaS",
-    suffix: "in days, not months.",
+    suffix: "this weekend, not next quarter.",
   },
   subtitle:
-    "Everything you need to build, launch, and monetize your web app: production-ready code, multi-tenant commerce, encrypted credentials, and complete documentation.",
+    "The complete Next.js 16 + Supabase + Lemon Squeezy boilerplate. Multi-tenant commerce, encrypted credentials, and a 62-page Docusaurus reference. One license, lifetime updates.",
   primaryCta: {
-    label: "Get ShipKit",
+    label: "Get Your App",
     href: "#pricing",
   },
   secondaryCta: {
@@ -19,17 +19,17 @@ export const heroContent: HeroContent = {
     external: true,
   },
   trustBadges: [
-    { label: "Built for web devs" },
     { label: "Ship 60+ hours faster" },
-    { label: "Pay once, access forever" },
-    { label: "Founder support" },
+    { label: "One price, one license" },
+    { label: "Lifetime updates" },
+    { label: "Reference-grade documentation" },
   ],
   avatars: [
-    // Replace these with real buyer avatars before publish
+    // PLACEHOLDER — replace with real buyer avatars before publish
     { src: "/marketing/avatars/placeholder-1.jpg", alt: "Customer" },
     { src: "/marketing/avatars/placeholder-2.jpg", alt: "Customer" },
     { src: "/marketing/avatars/placeholder-3.jpg", alt: "Customer" },
     { src: "/marketing/avatars/placeholder-4.jpg", alt: "Customer" },
   ],
-  heroMediaAlt: "ShipKit dashboard preview",
+  heroMediaAlt: "Your App dashboard preview",
 };
