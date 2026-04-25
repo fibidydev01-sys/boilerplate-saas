@@ -1,12 +1,18 @@
 import { Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { brandingConfig } from "@/config";
+import { cn } from "@/core/lib/utils";
 import { pricingContent } from "../../content/pricing";
 import { interpolateBrand } from "../../lib";
 import { PriceCard } from "../primitives";
 
 export function PricingSection() {
   const content = interpolateBrand(pricingContent, brandingConfig.name);
+
+  // Single tier → centered narrow container.
+  // Multi-tier (2+) → 3-column grid as before.
+  // Boilerplate-aware: kalau buyer tambah tier nanti, layout otomatis switch.
+  const isSingleTier = content.tiers.length === 1;
 
   return (
     <section id="pricing" className="py-20 md:py-28 lg:py-32">
@@ -29,7 +35,14 @@ export function PricingSection() {
           </div>
         </div>
 
-        <div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-3">
+        <div
+          className={cn(
+            "mx-auto",
+            isSingleTier
+              ? "max-w-md"
+              : "grid max-w-6xl gap-6 md:grid-cols-3"
+          )}
+        >
           {content.tiers.map((tier) => (
             <PriceCard key={tier.id} tier={tier} />
           ))}

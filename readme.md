@@ -1,204 +1,302 @@
-# E-Raport PKBM — Boilerplate
+# Next.js 16 Multi-Tenant SaaS Boilerplate
 
-> Boilerplate production-ready untuk sistem E-Raport PKBM berbasis Next.js 15 + Supabase.
-> Battle-tested. Auth, RLS, middleware, seed — semua sudah dikerjakan.
+A production-ready Next.js 16 + Supabase + Lemon Squeezy boilerplate for
+indie SaaS builders. Multi-tenant commerce, encrypted credentials, full
+authentication layer, and reference-grade documentation.
+
+> **One license. One developer. Unlimited projects. Lifetime updates.**
+
+---
+
+## What's inside
+
+- **Next.js 16** with App Router, React 19, Tailwind CSS v4, TypeScript strict
+- **Supabase** — auth, database, storage, with Row-Level Security enforced
+- **Lemon Squeezy** — multi-tenant commerce with per-user encrypted credentials
+- **Resend** — transactional email with React Email templates
+- **8 module slots** — 2 production-ready, 6 staged for your domain
+- **62-page Docusaurus reference** — every feature documented
 
 ---
 
 ## Tech Stack
 
-| Layer | Teknologi |
-|---|---|
-| Framework | Next.js 15 (App Router, Turbopack) |
-| Language | TypeScript |
-| Styling | Tailwind CSS v4 |
-| UI Components | shadcn/ui |
-| Auth & Database | Supabase (Auth + PostgreSQL + RLS) |
-| State Management | Zustand |
-| Form | React Hook Form + Zod |
-| Package Manager | pnpm |
+| Layer | Technology |
+|-------|------------|
+| Framework | Next.js 16 (App Router) |
+| UI | React 19, Tailwind CSS v4, shadcn/ui |
+| Language | TypeScript (strict mode) |
+| Auth + DB | Supabase (with RLS) |
+| Payments | Lemon Squeezy (multi-tenant) |
+| Email | Resend + React Email |
+| State | Zustand (granular selectors) |
+| Forms | React Hook Form + Zod |
+| Docs | Docusaurus |
 
 ---
 
-## Struktur Direktori
+## Quick start
 
-```
-src/
-├── app/
-│   ├── (auth)/           # Login page
-│   ├── (dashboard)/      # Halaman utama (layout + dashboard, overview, profile, settings, admin)
-│   ├── api/auth/         # Supabase auth callback
-│   ├── globals.css
-│   ├── layout.tsx
-│   └── page.tsx          # Redirect ke /dashboard
-├── components/
-│   ├── features/auth/    # LoginForm, LogoutButton
-│   ├── layout/           # AppSidebar, MobileBottomNav, UserMenu, Header, NavConfig
-│   ├── providers/        # AuthProvider
-│   ├── shared/           # LoadingSpinner, FullPageLoader, ConfirmDialog, OfflineDetector
-│   └── ui/               # shadcn/ui components
-├── constants/            # ROUTES
-├── hooks/                # useAuth
-├── lib/
-│   ├── supabase/         # client.ts, server.ts, proxy.ts
-│   ├── utils.ts
-│   └── validators.ts
-├── proxy.ts              # Middleware auth guard
-├── stores/               # Zustand auth store
-└── types/                # Database types, UserProfile
-```
-
----
-
-## Fitur Boilerplate
-
-- Auth guard middleware — redirect otomatis ke `/login` jika belum login
-- Zustand auth store dengan race condition fix dan single fetch promise
-- RLS PostgreSQL — user hanya bisa akses data sendiri, admin akses semua
-- Role-based access — `super_admin` dan `user`
-- Auto-create profile saat user signup via trigger
-- Mobile-first layout — sidebar desktop + bottom nav mobile
-- Offline detector
-- PWA-ready (manifest, icons, apple web app)
-- Dark mode ready (CSS variables)
-
----
-
-## Setup — Dari Nol Sampai Jalan
-
-### 1. Clone & Install
+### 1. Install dependencies
 
 ```bash
-git clone <repo-url>
-cd e-raport
 pnpm install
 ```
 
-### 2. Environment Variables
-
-Buat file `.env.local` di root project:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://xxxxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxx...
-SUPABASE_SERVICE_ROLE_KEY=eyJxxx...
-```
-
-Cara dapat key:
-- Buka [supabase.com](https://supabase.com) → pilih project
-- **Project Settings → API**
-- Copy `URL`, `anon public`, dan `service_role` (jaga kerahasiaan `service_role`!)
-
-### 3. Setup Database — Jalankan SQL
-
-Buka **Supabase Dashboard → SQL Editor**, paste isi file `supabase/setup.sql`, lalu klik **Run**.
-
-Yang dilakukan script ini:
-- Nuclear drop semua table & function lama (aman untuk fresh setup)
-- Buat table `user_profiles`
-- Setup RLS policies anti-rekursi dengan helper function `get_my_role()`
-- Buat trigger `updated_at` otomatis
-- Buat trigger auto-create profile saat user signup
-
-> ⚠️ Jangan jalankan ulang di production yang sudah ada data — script ini DROP semua!
-
-### 4. Seed Users — Jalankan Node
-
-Edit daftar user di `scripts/seed.js` sesuai kebutuhan:
-
-```js
-const userList = [
-  {
-    full_name: 'Administrator',
-    email: 'admin@pkbm.com',
-    password: 'Admin@2026',
-    role: 'super_admin',
-  },
-  {
-    full_name: 'Nama User',
-    email: 'user@pkbm.com',
-    password: 'User@2026',
-    role: 'user',
-  },
-];
-```
-
-Lalu jalankan:
+### 2. Configure environment
 
 ```bash
-node scripts/seed.js
+cp .env.example .env.local
 ```
 
-Script ini idempotent — kalau user sudah ada, dia skip. Aman dijalankan berkali-kali.
+Edit `.env.local` and set the required variables:
 
-### 5. Jalankan Dev Server
+```bash
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="..."
+SUPABASE_SERVICE_ROLE_KEY="..."
+
+# Encryption key for storing user credentials (32 bytes hex)
+ENCRYPTION_KEY="..."
+
+# Resend
+RESEND_API_KEY="..."
+
+# App branding (env-driven, ganti tanpa code change)
+NEXT_PUBLIC_APP_NAME="Your App"
+NEXT_PUBLIC_APP_SHORT_NAME="App"
+NEXT_PUBLIC_APP_DESCRIPTION="A modern web application"
+NEXT_PUBLIC_APP_SUPPORT_EMAIL="hello@yourapp.com"
+NEXT_PUBLIC_APP_LEGAL_JURISDICTION="Indonesia"
+NEXT_PUBLIC_APP_PURCHASE_URL=""
+NEXT_PUBLIC_APP_AUTH_BG=""
+```
+
+### 3. Run database migrations
+
+```bash
+# Apply migrations to your Supabase project
+pnpm db:seed
+```
+
+### 4. Start development server
 
 ```bash
 pnpm dev
 ```
 
-Buka [http://localhost:3000](http://localhost:3000) — akan redirect ke `/login`.
+Open `http://localhost:3000` to see the landing page.
 
 ---
 
-## Role System
+## Architecture
 
-| Role | Akses |
-|---|---|
-| `user` | Dashboard, Overview, Profile, Settings |
-| `super_admin` | Semua halaman user + Admin Panel |
+### Config-driven design
 
-Role di-set di database (`user_profiles.role`). Untuk ubah role user:
+Three config files control the entire boilerplate:
 
-```sql
-UPDATE public.user_profiles
-SET role = 'super_admin'
-WHERE id = '<user-uuid>';
+```
+src/config/
+├── app.config.ts          # Modules, auth, payment, locale
+├── branding.config.ts     # Identity (env-driven)
+└── permissions.config.ts  # RBAC matrix with wildcards
+```
+
+Change branding without touching code: edit `.env.local`, the entire app
+updates — landing pages, legal docs, dashboard header, sidebar, email
+templates, PWA manifest, all of it.
+
+### Module system
+
+Eight module slots with strict isolation rules:
+
+| Module | Status | Purpose |
+|--------|--------|---------|
+| `admin` | ✅ Production-ready | Role-gated admin panel |
+| `commerce` | ✅ Production-ready | Multi-tenant Lemon Squeezy |
+| `landing` | ✅ Production-ready | Marketing pages, legal, pricing |
+| `saas` | ⚙️ Skeleton | Your workspace module |
+| `blog` | ⚙️ Skeleton | Content publishing |
+| `project` | ⚙️ Skeleton | Project management |
+| `forum` | ⚙️ Skeleton | Community discussion |
+| `chat` | ⚙️ Skeleton | Messaging |
+
+Each module toggles in `app.config.ts`. Disabled modules are excluded from
+routing and bundle.
+
+### Authentication
+
+Supabase SSR with dual callback architecture:
+- `/api/auth/callback` — PKCE OAuth flow
+- `/api/auth/confirm` — Email OTP confirmation
+
+Provider system: `LoginForm` and `RegisterForm` read enabled providers
+from `appConfig.auth` and render dynamically. Add Google/GitHub/Apple by
+editing the config — no component changes needed.
+
+### Multi-tenant commerce
+
+Each user encrypts their own Lemon Squeezy API key with AES-256-GCM
+(`node:crypto`) before persisting. Webhook ingestion uses HMAC-SHA256
+timing-safe verification with database-level idempotency via `UNIQUE
+(provider, event_id)`.
+
+This means: each user can connect their own Lemon Squeezy account, sell
+their own products, and receive their own webhooks — without ever seeing
+another user's data.
+
+---
+
+## Branding
+
+Single source of truth: `src/config/branding.config.ts`. Every value is
+overridable via environment variable.
+
+| Field | Env var | Default |
+|-------|---------|---------|
+| `name` | `NEXT_PUBLIC_APP_NAME` | "My App" |
+| `shortName` | `NEXT_PUBLIC_APP_SHORT_NAME` | "App" |
+| `description` | `NEXT_PUBLIC_APP_DESCRIPTION` | "A modern web application" |
+| `tagline` | `NEXT_PUBLIC_APP_TAGLINE` | "Welcome" |
+| `supportEmail` | `NEXT_PUBLIC_APP_SUPPORT_EMAIL` | "admin@fibidy.com" |
+| `legalJurisdiction` | `NEXT_PUBLIC_APP_LEGAL_JURISDICTION` | "Indonesia" |
+| `purchaseUrl` | `NEXT_PUBLIC_APP_PURCHASE_URL` | "" |
+| `assets.authBackground` | `NEXT_PUBLIC_APP_AUTH_BG` | (Cloudinary stock) |
+| `theme.primaryColor` | `NEXT_PUBLIC_APP_PRIMARY_COLOR` | "#16a34a" |
+
+### Logo assets
+
+Replace files in `public/branding/` to update the app logo everywhere:
+
+```
+public/branding/
+├── logo.png              192×192  (auth pages, final CTA)
+├── logo-sm.png            96×96   (header, sidebar, footer)
+├── favicon.ico                    (browser tab)
+├── apple-touch-icon.png  180×180  (iOS home screen)
+└── icon-{48,72,96,144,192,512}.png  (PWA manifest)
+```
+
+One file replacement updates all 6+ surfaces using the logo.
+
+### Marketing & legal content
+
+Content files use `{appName}` placeholders, interpolated at render via the
+`interpolateBrand` helper. This keeps content data pure (no runtime imports)
+while staying env-driven.
+
+```ts
+// src/modules/landing/content/legal/license.ts
+export const licenseContent: LegalPage = {
+  title: "Solo Developer License",
+  intro: ["When you purchase {appName}, you are granted..."],
+  // ...
+};
+
+// src/app/(marketing)/legal/license/page.tsx
+const page = interpolateBrand(licenseContent, brandingConfig.name);
 ```
 
 ---
 
-## Menambah User Baru
+## Internationalization
 
-Tambahkan entry di `scripts/seed.js` → jalankan `node scripts/seed.js`.
+Two locales out of the box: English (default) and Indonesian.
 
-Script otomatis:
-- Cek apakah user sudah ada di auth
-- Kalau sudah ada → skip atau update role
-- Kalau belum → buat auth user + profile
+```
+src/core/i18n/
+├── index.ts              # Type-safe key resolver with fallback
+└── locales/
+    ├── en.json           # Source of truth
+    └── id.json
+```
+
+Type-safe keys via recursive `NestedKey<Dict>`. Fallback chain:
+active locale → English → key.
+
+Add a new locale: drop `xx.json` matching the EN structure, add to
+`appConfig.locale.available`.
 
 ---
 
-## Catatan Penting
+## Project structure
 
-- `SUPABASE_SERVICE_ROLE_KEY` hanya dipakai di `scripts/seed.js` (server-side). Jangan pernah expose ke client/browser.
-- RLS aktif di semua table — query dari client selalu melewati policy.
-- `get_my_role()` adalah SECURITY DEFINER function — sengaja bypass RLS untuk mencegah infinite recursion di policy.
-- Middleware auth guard ada di `src/proxy.ts` — semua route kecuali `/login` dan `/api/auth/callback` dilindungi.
-
----
-
-## Scripts
-
-```bash
-pnpm dev          # Development server
-pnpm build        # Production build
-pnpm start        # Production server
-pnpm lint         # ESLint
-node scripts/seed.js   # Seed users ke Supabase
+```
+src/
+├── app/                      # Next.js App Router
+│   ├── (auth)/               # Login / register / forgot / reset (50/50 layout)
+│   ├── (dashboard)/          # Authenticated app shell
+│   ├── (marketing)/          # Landing, pricing, showcase, legal
+│   ├── api/                  # Auth callbacks, webhooks
+│   └── layout.tsx            # Root layout, metadata, manifest
+├── components/ui/            # shadcn/ui primitives
+├── config/                   # Three config files (single source of truth)
+├── core/                     # Cross-cutting concerns
+│   ├── auth/                 # Auth services, hooks, store
+│   ├── i18n/                 # Translation resolver
+│   ├── layout/               # Header, sidebar, mobile nav
+│   ├── lib/                  # Supabase clients, utils, validators
+│   └── components/           # Shared components
+└── modules/                  # 8 module slots
+    ├── admin/                # Production-ready
+    ├── auth/                 # Login/register form composers
+    ├── commerce/             # Production-ready (Lemon Squeezy)
+    ├── landing/              # Production-ready
+    └── ...                   # 4 staged skeletons
 ```
 
 ---
 
-## Battle Tested
+## License
 
-- RLS infinite recursion → solved via `SECURITY DEFINER` helper function
-- Auth race condition → solved via single fetch promise di Zustand store
-- Middleware module not found → `lib/supabase/proxy.ts` tersedia
-- Trigger insert conflict → `ON CONFLICT DO NOTHING` di `handle_new_user`
-- ESM vs CJS seed script → gunakan `node scripts/seed.js` langsung (auto-detect ESM)
+Solo Developer License. One developer can use this boilerplate on
+unlimited personal projects, unlimited client projects, and their own
+commercial products. You cannot resell this boilerplate as a competing
+product.
+
+Full terms: `/legal/license` route or `src/modules/landing/content/legal/license.ts`.
+
+### TL;DR
+
+| Allowed | Not allowed |
+|---------|-------------|
+| Unlimited personal & client projects | Reselling as a boilerplate |
+| Selling apps you build with it | Publishing source to public Git |
+| Modifying & extending | Repackaging as your own work |
+| Lifetime updates | Sharing license with other devs |
 
 ---
 
-Dibuat untuk **PKBM Yayasan Al Barakah**.
-Silakan fork dan sesuaikan untuk kebutuhan institusi lain.
+## Refund policy
+
+Fourteen days, no questions asked. Reply to your purchase receipt to
+request a refund.
+
+---
+
+## Support
+
+Documentation-first product. The included Docusaurus reference covers
+setup, architecture, every feature, troubleshooting, and deployment.
+
+For genuine bugs and blockers not covered in the docs, reply to your
+purchase receipt.
+
+Custom development, private consulting, and hands-on integration work
+are not part of the license — those are separate engagements.
+
+---
+
+## Stack credits
+
+Built on the shoulders of giants:
+
+- [Next.js](https://nextjs.org/) — Vercel
+- [Supabase](https://supabase.com/) — Postgres + Auth + Storage + RLS
+- [Lemon Squeezy](https://www.lemonsqueezy.com/) — Multi-tenant commerce
+- [Resend](https://resend.com/) — Transactional email
+- [shadcn/ui](https://ui.shadcn.com/) — Component primitives
+- [Tailwind CSS](https://tailwindcss.com/) — Utility-first styling
+- [Zustand](https://github.com/pmndrs/zustand) — State management
+- [React Hook Form](https://react-hook-form.com/) + [Zod](https://zod.dev/) — Form & validation
