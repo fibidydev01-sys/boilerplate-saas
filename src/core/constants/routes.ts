@@ -7,6 +7,8 @@
  *   + PUBLIC_EXACT_ROUTES         (exact-match allowlist, incl. "/" home)
  *   + PUBLIC_ROUTE_PREFIXES       (prefix-match allowlist)
  *   + isPublicRoute()             (middleware helper)
+ *   + /api/locale public          (locale switcher endpoint must work for
+ *                                  unauthenticated visitors on landing)
  *
  * Existing constants unchanged.
  */
@@ -55,6 +57,9 @@ export const ROUTES = {
   API_AUTH_CALLBACK: "/api/auth/callback",
   API_AUTH_HOOKS_SEND_EMAIL: "/api/auth/hooks/send-email",
 
+  // API — Locale (public — no auth required)
+  API_LOCALE: "/api/locale",
+
   // API — Commerce
   API_COMMERCE_CREDENTIALS: "/api/commerce/credentials",
   API_COMMERCE_PRODUCTS: "/api/commerce/products",
@@ -84,10 +89,18 @@ export const PUBLIC_EXACT_ROUTES: readonly string[] = [
 /**
  * Prefix-match public routes (no auth required).
  * Any pathname starting with one of these is public.
+ *
+ * `/api/locale` is here because the locale switcher must work for
+ * UNAUTHENTICATED visitors on the landing/marketing pages. Without this,
+ * proxy.ts redirects the POST to /login, the Set-Cookie header is lost,
+ * and the locale never persists. The endpoint validates input against
+ * `appConfig.locale.available`, so allowing it public is safe — the
+ * value isn't sensitive and there's no abuse vector.
  */
 export const PUBLIC_ROUTE_PREFIXES: readonly string[] = [
   "/legal",         // All legal pages
   "/api/auth",      // Supabase auth callbacks + hooks
+  "/api/locale",    // Locale switcher — must work pre-auth
 ];
 
 /**
@@ -98,6 +111,7 @@ export const PUBLIC_ROUTE_PREFIXES: readonly string[] = [
  *   isPublicRoute("/pricing")               // true (exact)
  *   isPublicRoute("/legal/terms")           // true (prefix)
  *   isPublicRoute("/api/auth/callback")     // true (prefix)
+ *   isPublicRoute("/api/locale")            // true (prefix)
  *   isPublicRoute("/dashboard")             // false
  *   isPublicRoute("/api/commerce/orders")   // false
  */

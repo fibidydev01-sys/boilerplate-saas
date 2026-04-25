@@ -14,14 +14,25 @@
  *   is needed.
  *
  * Why validate:
- *   Without `isValidLocale()`, an attacker could set
- *   `app-locale=<script>` and although httpOnly=false the value never
- *   reaches a DOM sink — but defense in depth is cheap. Also catches
- *   legitimate bugs (typo in client code, locale removed from config).
+ *   `isValidLocale()` rejects values outside appConfig.locale.available.
+ *   Catches typos, removed-but-still-cached locales, and arbitrary input.
+ *
+ * Why response.cookies.set (not cookies().set from next/headers):
+ *   Attaching the cookie directly to the outgoing NextResponse is the
+ *   most reliable pattern — independent of framework version quirks
+ *   around the global mutable cookie store. Functionally identical for
+ *   the happy path, but avoids edge cases where middleware response
+ *   composition can drop or shadow Set-Cookie headers.
+ *
+ * Why this route is public (in routes.ts → PUBLIC_ROUTE_PREFIXES):
+ *   Unauthenticated visitors on landing must be able to switch locale.
+ *   Without the public exemption, proxy.ts redirects this POST to /login
+ *   (since it's not a public route by default), the redirect strips the
+ *   Set-Cookie header, and the locale never persists. Locale isn't
+ *   sensitive data — public access here is safe.
  */
 
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import {
   LOCALE_COOKIE_NAME,
   LOCALE_COOKIE_MAX_AGE,
@@ -45,16 +56,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_locale" }, { status: 400 });
   }
 
-  const store = await cookies();
-  store.set(LOCALE_COOKIE_NAME, locale, {
+  // Attach cookie directly to the outgoing response. This bypasses any
+  // edge cases where the global cookies() store might not propagate
+  // correctly through middleware composition.
+  const response = NextResponse.json({ ok: true, locale });
+  response.cookies.set({
+    name: LOCALE_COOKIE_NAME,
+    value: locale,
     maxAge: LOCALE_COOKIE_MAX_AGE,
     path: "/",
     sameSite: "lax",
     httpOnly: false,
     secure: process.env.NODE_ENV === "production",
   });
-
-  return NextResponse.json({ ok: true, locale });
+  return response;
 }
 
 /**
