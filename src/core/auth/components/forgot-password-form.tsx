@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,7 +35,6 @@ import {
   forgotPasswordSchema,
   type ForgotPasswordFormData,
 } from "@/core/lib/validators";
-import { brandingConfig } from "@/config";
 import { ROUTES } from "@/core/constants";
 import { t } from "@/core/i18n";
 
@@ -57,6 +55,9 @@ import { t } from "@/core/i18n";
  *
  * Response: selalu success message (even kalau email gak terdaftar)
  * untuk cegah email enumeration attack.
+ *
+ * Brand identity ditampilkan di image panel kiri (auth layout 50/50).
+ * Form card keep page-specific title untuk context halaman.
  */
 export function ForgotPasswordForm() {
   const [error, setError] = useState<string | null>(null);
@@ -109,26 +110,13 @@ export function ForgotPasswordForm() {
 
   return (
     <Card className="w-full max-w-md shadow-lg">
-      <CardHeader className="text-center space-y-4 pb-4">
-        <div className="flex justify-center">
-          <div className="relative w-24 h-24">
-            <Image
-              src={brandingConfig.assets.logo}
-              alt={brandingConfig.name}
-              fill
-              className="object-contain"
-              priority
-            />
-          </div>
-        </div>
-        <div>
-          <CardTitle className="text-2xl font-bold">
-            {t("auth.forgotPasswordTitle")}
-          </CardTitle>
-          <CardDescription className="text-base mt-1">
-            {t("auth.forgotPasswordSubtitle")}
-          </CardDescription>
-        </div>
+      <CardHeader className="text-center space-y-2 pb-4">
+        <CardTitle className="text-2xl font-bold">
+          {t("auth.forgotPasswordTitle")}
+        </CardTitle>
+        <CardDescription className="text-base">
+          {t("auth.forgotPasswordSubtitle")}
+        </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-4">

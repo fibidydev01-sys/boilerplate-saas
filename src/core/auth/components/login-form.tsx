@@ -1,18 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { appConfig, brandingConfig } from "@/config";
+import { appConfig } from "@/config";
 import { ROUTES } from "@/core/constants";
 import { t } from "@/core/i18n";
 import {
@@ -47,6 +43,9 @@ interface LoginFormProps {
  *
  * Nambah OAuth provider: edit appConfig.auth.oauthProviders +
  * register icon/label di oauth-config.tsx. Gak perlu touch file ini.
+ *
+ * Brand identity (logo + name + description) ditampilkan di image panel
+ * kiri (auth layout 50/50). Form card-nya clean — langsung functional.
  */
 export function LoginForm({ returnTo, error }: LoginFormProps) {
   const passwordProviders = appConfig.auth.passwordProviders;
@@ -71,29 +70,7 @@ export function LoginForm({ returnTo, error }: LoginFormProps) {
 
   return (
     <Card className="w-full max-w-md shadow-lg">
-      <CardHeader className="text-center space-y-4 pb-4">
-        <div className="flex justify-center">
-          <div className="relative w-24 h-24">
-            <Image
-              src={brandingConfig.assets.logo}
-              alt={brandingConfig.name}
-              fill
-              className="object-contain"
-              priority
-            />
-          </div>
-        </div>
-        <div>
-          <CardTitle className="text-2xl font-bold">
-            {brandingConfig.name}
-          </CardTitle>
-          <CardDescription className="text-base mt-1">
-            {brandingConfig.description}
-          </CardDescription>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-6">
         {/* Error dari callback redirect (deactivated, not_registered, dll) */}
         {callbackErrorMessage && (
           <Alert variant="destructive">

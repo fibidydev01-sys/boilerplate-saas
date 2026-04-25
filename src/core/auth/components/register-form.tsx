@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import {
   Card,
@@ -10,7 +9,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { appConfig, brandingConfig } from "@/config";
+import { appConfig } from "@/config";
 import { ROUTES } from "@/core/constants";
 import { t } from "@/core/i18n";
 import {
@@ -24,6 +23,13 @@ interface RegisterFormProps {
   returnTo?: string | null;
 }
 
+/**
+ * RegisterForm — composer.
+ *
+ * Brand identity (logo + name + description) ditampilkan di image panel
+ * kiri (auth layout 50/50). Form card-nya keep page-specific title
+ * ("Create account" / equivalent) yang relevant untuk konteks halaman.
+ */
 export function RegisterForm({ returnTo }: RegisterFormProps) {
   const passwordProviders = appConfig.auth.passwordProviders;
   const oauthProviders = appConfig.auth.oauthProviders;
@@ -44,26 +50,13 @@ export function RegisterForm({ returnTo }: RegisterFormProps) {
 
   return (
     <Card className="w-full max-w-md shadow-lg">
-      <CardHeader className="text-center space-y-4 pb-4">
-        <div className="flex justify-center">
-          <div className="relative w-24 h-24">
-            <Image
-              src={brandingConfig.assets.logo}
-              alt={brandingConfig.name}
-              fill
-              className="object-contain"
-              priority
-            />
-          </div>
-        </div>
-        <div>
-          <CardTitle className="text-2xl font-bold">
-            {t("auth.registerTitle")}
-          </CardTitle>
-          <CardDescription className="text-base mt-1">
-            {t("auth.registerSubtitle")}
-          </CardDescription>
-        </div>
+      <CardHeader className="text-center space-y-2 pb-4">
+        <CardTitle className="text-2xl font-bold">
+          {t("auth.registerTitle")}
+        </CardTitle>
+        <CardDescription className="text-base">
+          {t("auth.registerSubtitle")}
+        </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-4">
