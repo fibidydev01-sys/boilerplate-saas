@@ -63,8 +63,20 @@ export function CustomersTable() {
     }
   }, [emailFilter]);
 
+  /**
+   * Defer initial/filter-triggered load to a microtask so the
+   * `setState({ kind: "loading" })` at the top of `load` runs from a
+   * promise callback, not synchronously inside the effect body.
+   * Avoids React 19 lint rule `react-hooks/set-state-in-effect`.
+   */
   useEffect(() => {
-    load();
+    let cancelled = false;
+    Promise.resolve().then(() => {
+      if (!cancelled) load();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
 
   async function handleSync() {

@@ -10,7 +10,7 @@
  *   - Connected: URL + hint + [Regenerate], [Delete] buttons
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Webhook,
   Copy,
@@ -40,7 +40,9 @@ export function WebhookConfigPanel() {
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  async function load() {
+  // Wrapped in useCallback so we can list it in the effect deps array
+  // (and so its identity is stable across renders).
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/commerce/webhooks/config");
@@ -51,11 +53,22 @@ export function WebhookConfigPanel() {
     } finally {
       setLoading(false);
     }
-  }
-
-  useEffect(() => {
-    load();
   }, []);
+
+  /**
+   * Defer initial load to a microtask so the `setLoading(true)` at the
+   * top of `load` runs from a promise callback, not synchronously inside
+   * the effect body. Avoids React 19 lint rule `react-hooks/set-state-in-effect`.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    Promise.resolve().then(() => {
+      if (!cancelled) load();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [load]);
 
   async function handleProvision() {
     setProvisioning(true);

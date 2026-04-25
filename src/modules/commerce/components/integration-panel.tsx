@@ -53,8 +53,20 @@ export function IntegrationPanel() {
     }
   }, []);
 
+  /**
+   * Defer initial fetch to a microtask so the `setIsLoading(true)` at
+   * the top of `fetchStatus` runs from a promise callback, not
+   * synchronously inside the effect body. Avoids React 19 lint rule
+   * `react-hooks/set-state-in-effect`.
+   */
   useEffect(() => {
-    fetchStatus();
+    let cancelled = false;
+    Promise.resolve().then(() => {
+      if (!cancelled) fetchStatus();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [fetchStatus]);
 
   if (isLoading || !status) {

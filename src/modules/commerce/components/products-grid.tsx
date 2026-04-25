@@ -98,8 +98,22 @@ export function ProductsGrid() {
     }
   }, [mapErrorCode, t]);
 
+  /**
+   * Initial fetch on mount.
+   *
+   * Defer via `Promise.resolve().then(...)` so the `setState({ kind: "loading" })`
+   * at the top of `fetchProducts` runs from a microtask, not synchronously
+   * inside the effect body. Avoids the React 19 lint rule
+   * `react-hooks/set-state-in-effect`. Same pattern as offline-detector.tsx.
+   */
   useEffect(() => {
-    fetchProducts();
+    let cancelled = false;
+    Promise.resolve().then(() => {
+      if (!cancelled) fetchProducts();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [fetchProducts]);
 
   // --- Loading ---
