@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
-import { LegalContent, disclaimerContent } from "@/modules/landing";
+import { brandingConfig } from "@/config";
+import {
+  LegalContent,
+  disclaimerContent,
+  interpolateBrand,
+} from "@/modules/landing";
 
 export const metadata: Metadata = {
   title: disclaimerContent.title,
 };
 
 export default function DisclaimerPage() {
-  return <LegalContent page={disclaimerContent} />;
+  const page = interpolateBrand(disclaimerContent, brandingConfig.name);
+  return <LegalContent page={page} />;
 }

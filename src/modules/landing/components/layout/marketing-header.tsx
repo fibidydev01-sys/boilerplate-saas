@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -21,6 +21,7 @@ export function MarketingHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const cta = user ? headerContent.ctaLoggedIn : headerContent.ctaLoggedOut;
+  const purchaseLabel = `Get ${brandingConfig.shortName}`;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-md">
@@ -54,7 +55,7 @@ export function MarketingHeader() {
           </Button>
           {!user ? (
             <Button asChild size="sm">
-              <Link href="/pricing">Get ShipKit</Link>
+              <Link href="/pricing">{purchaseLabel}</Link>
             </Button>
           ) : null}
         </div>
@@ -87,7 +88,7 @@ export function MarketingHeader() {
                 {!user ? (
                   <Button asChild className="w-full">
                     <Link href="/pricing" onClick={() => setMobileOpen(false)}>
-                      Get ShipKit
+                      {purchaseLabel}
                     </Link>
                   </Button>
                 ) : null}

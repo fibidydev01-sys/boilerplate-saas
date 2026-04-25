@@ -1,4 +1,5 @@
 import { Clock, Zap } from "lucide-react";
+import { brandingConfig } from "@/config";
 import { problemContent } from "../../content/problem";
 
 export function ProblemSection() {
@@ -16,7 +17,7 @@ export function ProblemSection() {
 
         <div className="mx-auto max-w-2xl">
           <div className="mb-6 text-center text-sm uppercase tracking-widest text-muted-foreground">
-            Without ShipKit, you waste
+            Without {brandingConfig.shortName}, you waste
           </div>
 
           <ul className="space-y-3">

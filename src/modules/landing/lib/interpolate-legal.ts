@@ -30,10 +30,4 @@ export function formatPrice(cents: number, currency = "USD"): string {
   return formatter.format(amount);
 }
 
-export { interpolateBrand } from "./interpolate-brand";
-
-/**
- * @deprecated Use `interpolateBrand` instead — it works on any content tree,
- * not just legal pages. Kept as alias for backward compatibility.
- */
-export { interpolateBrand as interpolateLegalContent } from "./interpolate-brand";
+export { interpolateLegalContent } from "./interpolate-legal";

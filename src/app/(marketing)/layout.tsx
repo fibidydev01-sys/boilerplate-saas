@@ -7,8 +7,7 @@ export const metadata: Metadata = {
     default: `${brandingConfig.name} — Multi-Tenant SaaS Boilerplate`,
     template: `%s — ${brandingConfig.name}`,
   },
-  description:
-    "The production-ready Next.js 16 boilerplate with multi-tenant commerce, auth, and encrypted credentials. Ship in days, not months.",
+  description: brandingConfig.description,
   openGraph: {
     type: "website",
     siteName: brandingConfig.name,

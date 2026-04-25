@@ -4,6 +4,8 @@ import type { TestimonialsContent } from "../types";
  * PLACEHOLDER CONTENT — replace before publish.
  * All testimonials below are fabricated for layout purposes.
  * Delete them or replace with real customer quotes before going live.
+ *
+ * Brand name uses `{appName}` placeholder — interpolated at render time.
  */
 export const testimonialsContent: TestimonialsContent = {
   eyebrow: "Testimonials",
@@ -11,7 +13,7 @@ export const testimonialsContent: TestimonialsContent = {
   testimonials: [
     {
       quote:
-        "ShipKit let me skip three weeks of plumbing and ship my MVP to paying customers in a single weekend. The multi-tenant commerce setup alone would have taken me a month.",
+        "{appName} let me skip three weeks of plumbing and ship my MVP to paying customers in a single weekend. The multi-tenant commerce setup alone would have taken me a month.",
       author: {
         name: "Placeholder Name",
         role: "Indie founder",
@@ -51,7 +53,7 @@ export const testimonialsContent: TestimonialsContent = {
     },
     {
       quote:
-        "Coming from a Rails background, I needed a Next.js starter that was opinionated but not magical. ShipKit threads that needle perfectly.",
+        "Coming from a Rails background, I needed a Next.js starter that was opinionated but not magical. {appName} threads that needle perfectly.",
       author: {
         name: "Placeholder Name",
         role: "Full-stack developer",

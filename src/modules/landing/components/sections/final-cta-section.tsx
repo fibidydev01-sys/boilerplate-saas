@@ -3,8 +3,11 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { brandingConfig } from "@/config";
 import { finalCtaContent } from "../../content/layout";
+import { interpolateBrand } from "../../lib";
 
 export function FinalCtaSection() {
+  const content = interpolateBrand(finalCtaContent, brandingConfig.name);
+
   return (
     <section className="relative overflow-hidden border-t border-border py-20 md:py-28">
       <div
@@ -19,26 +22,26 @@ export function FinalCtaSection() {
         </div>
 
         <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-          {finalCtaContent.heading}
+          {content.heading}
         </h2>
         <p className="mx-auto mt-5 max-w-xl text-balance text-base leading-relaxed text-muted-foreground">
-          {finalCtaContent.subtitle}
+          {content.subtitle}
         </p>
 
         <div className="mt-10">
           <Button asChild size="lg">
-            {finalCtaContent.cta.external ? (
+            {content.cta.external ? (
               <a
-                href={finalCtaContent.cta.href}
+                href={content.cta.href}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                {finalCtaContent.cta.label}
+                {content.cta.label}
                 <ArrowRight className="ml-2 size-4" aria-hidden />
               </a>
             ) : (
-              <Link href={finalCtaContent.cta.href}>
-                {finalCtaContent.cta.label}
+              <Link href={content.cta.href}>
+                {content.cta.label}
                 <ArrowRight className="ml-2 size-4" aria-hidden />
               </Link>
             )}

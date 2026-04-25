@@ -2,7 +2,16 @@ import type { PricingContent } from "../types";
 
 /**
  * Single tier pricing. $139 launch price, originally $189.
- * Gumroad variants must be DISABLED to match this single-tier layout.
+ *
+ * Brand name uses `{appName}` placeholder — interpolated at render time.
+ *
+ * NOTE on `cta.href`:
+ *   This is a boilerplate. The default `#` href is intentional — buyers
+ *   replace it with their own checkout URL (Gumroad, Lemon Squeezy direct,
+ *   Stripe, etc.) before publish. To keep the value env-driven across
+ *   deployments, you can also wire it to a `brandingConfig.purchaseUrl`
+ *   field — that's left as an extension point so each buyer chooses their
+ *   own payment provider.
  */
 export const pricingContent: PricingContent = {
   eyebrow: "Pricing",
@@ -11,7 +20,7 @@ export const pricingContent: PricingContent = {
   tiers: [
     {
       id: "solo",
-      name: "Your App",
+      name: "{appName}",
       tagline: "The complete boilerplate for one solo developer",
       priceCents: 13900,
       originalPriceCents: 18900,
@@ -30,8 +39,9 @@ export const pricingContent: PricingContent = {
         "Fourteen-day refund window",
       ],
       cta: {
-        label: "Get Your App",
-        href: "https://fibidy.gumroad.com/l/your-app-saas",
+        label: "Get {appName}",
+        // TODO: replace with your own checkout URL before publish
+        href: "#",
         external: true,
       },
       footnote: "Pay once. Lifetime updates. Reference-grade documentation included.",

@@ -1,11 +1,18 @@
+import { brandingConfig } from "@/config";
 import type { LegalPage } from "../../types";
 
+/**
+ * Privacy Policy.
+ *
+ * Brand name uses `{appName}` placeholder — interpolated at render time.
+ * Contact email is read from `brandingConfig.supportEmail` (env-driven).
+ */
 export const privacyPolicyContent: LegalPage = {
   slug: "privacy-policy",
   title: "Privacy Policy",
   lastUpdated: "2026-04-24",
   intro: [
-    "This Privacy Policy describes how ShipKit collects, uses, and shares information when you visit our website or purchase our products.",
+    "This Privacy Policy describes how {appName} collects, uses, and shares information when you visit our website or purchase our products.",
     "We take privacy seriously. We collect the minimum information needed to run our business and we do not sell your data to anyone.",
   ],
   sections: [
@@ -73,7 +80,7 @@ export const privacyPolicyContent: LegalPage = {
     },
   ],
   contact: {
-    name: "ShipKit Support",
-    email: "support@shipkit.dev",
+    name: "{appName} Support",
+    email: brandingConfig.supportEmail,
   },
 };

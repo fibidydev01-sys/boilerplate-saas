@@ -1,5 +1,10 @@
 import type { FaqContent } from "../types";
 
+/**
+ * FAQ section content.
+ *
+ * Brand name uses `{appName}` placeholder — interpolated at render time.
+ */
 export const faqContent: FaqContent = {
   eyebrow: "FAQ",
   heading: "Frequently asked questions",
@@ -17,12 +22,12 @@ export const faqContent: FaqContent = {
     {
       question: "Do I get lifetime access and updates?",
       answer:
-        "Yes. One payment. Every future update is included. When a security patch ships or a dependency gets bumped, it appears in your Gumroad library automatically.",
+        "Yes. One payment. Every future update is included. When a security patch ships or a dependency gets bumped, it appears in your library automatically.",
     },
     {
       question: "What is the license?",
       answer:
-        "Solo Developer License. One developer can use Your App on unlimited personal projects, unlimited client projects, and their own commercial products. You cannot resell Your App itself as a boilerplate, starter kit, or competing product. Full terms on the License page.",
+        "Solo Developer License. One developer can use {appName} on unlimited personal projects, unlimited client projects, and their own commercial products. You cannot resell {appName} itself as a boilerplate, starter kit, or competing product. Full terms on the License page.",
     },
     {
       question: "Can I use it for client work?",
@@ -32,7 +37,7 @@ export const faqContent: FaqContent = {
     {
       question: "What if my team grows?",
       answer:
-        "Each developer working directly with the Your App source code needs their own license. Designers, product managers, and clients reviewing the running application do not.",
+        "Each developer working directly with the {appName} source code needs their own license. Designers, product managers, and clients reviewing the running application do not.",
     },
     {
       question: "Can I get a refund?",
@@ -45,9 +50,9 @@ export const faqContent: FaqContent = {
         "First pnpm dev in ten minutes. First feature shipped by the end of your first day. The getting-started guide walks through every environment variable and first-deploy step.",
     },
     {
-      question: "How is Your App different from other Next.js boilerplates?",
+      question: "How is {appName} different from other Next.js boilerplates?",
       answer:
-        "Most boilerplates fake multi-tenancy by adding a team_id column to every table. Your App stores each user's Lemon Squeezy credentials encrypted at rest with AES-256-GCM, and the webhook router dispatches events per seller with HMAC-SHA256 timing-safe verification and database-level idempotency. Config-driven architecture means branding, permissions, and feature flags live in one file each, not scattered across forty.",
+        "Most boilerplates fake multi-tenancy by adding a team_id column to every table. {appName} stores each user's Lemon Squeezy credentials encrypted at rest with AES-256-GCM, and the webhook router dispatches events per seller with HMAC-SHA256 timing-safe verification and database-level idempotency. Config-driven architecture means branding, permissions, and feature flags live in one file each, not scattered across forty.",
     },
     {
       question: "What is the tech stack?",
@@ -82,7 +87,7 @@ export const faqContent: FaqContent = {
     {
       question: "Are there any other costs?",
       answer:
-        "You pay for the services you use: Supabase (free tier covers most early-stage projects), Lemon Squeezy (transaction fees only, no monthly charges), Resend (free tier covers ten thousand emails). Your App itself is a one-time payment.",
+        "You pay for the services you use: Supabase (free tier covers most early-stage projects), Lemon Squeezy (transaction fees only, no monthly charges), Resend (free tier covers ten thousand emails). {appName} itself is a one-time payment.",
     },
   ],
 };

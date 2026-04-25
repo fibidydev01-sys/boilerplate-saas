@@ -1,5 +1,11 @@
 import type { HeroContent } from "../types";
 
+/**
+ * Hero section content.
+ *
+ * Brand name uses `{appName}` placeholder — interpolated at render time.
+ * No direct `brandingConfig` import → keeps content data pure.
+ */
 export const heroContent: HeroContent = {
   badge: "One price. Everything included. $139.",
   headline: {
@@ -10,7 +16,7 @@ export const heroContent: HeroContent = {
   subtitle:
     "The complete Next.js 16 + Supabase + Lemon Squeezy boilerplate. Multi-tenant commerce, encrypted credentials, and a 62-page Docusaurus reference. One license, lifetime updates.",
   primaryCta: {
-    label: "Get Your App",
+    label: "Get {appName}",
     href: "#pricing",
   },
   secondaryCta: {
@@ -31,5 +37,5 @@ export const heroContent: HeroContent = {
     { src: "/marketing/avatars/placeholder-3.jpg", alt: "Customer" },
     { src: "/marketing/avatars/placeholder-4.jpg", alt: "Customer" },
   ],
-  heroMediaAlt: "Your App dashboard preview",
+  heroMediaAlt: "{appName} dashboard preview",
 };
