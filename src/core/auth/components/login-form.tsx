@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { appConfig } from "@/config";
 import { ROUTES } from "@/core/constants";
-import { t } from "@/core/i18n";
+import { useTranslation } from "@/core/i18n";
 import {
   EmailPasswordForm,
   OAuthButton,
@@ -48,6 +48,7 @@ interface LoginFormProps {
  * kiri (auth layout 50/50). Form card-nya clean — langsung functional.
  */
 export function LoginForm({ returnTo, error }: LoginFormProps) {
+  const { t } = useTranslation();
   const passwordProviders = appConfig.auth.passwordProviders;
   const oauthProviders = appConfig.auth.oauthProviders;
 
@@ -65,6 +66,30 @@ export function LoginForm({ returnTo, error }: LoginFormProps) {
     const params = new URLSearchParams({ returnTo });
     return `${ROUTES.REGISTER}?${params.toString()}`;
   }, [returnTo]);
+
+  /**
+   * Map error code dari callback redirect → i18n message.
+   *
+   * Defined inside component (closure over hooked `t`) so messages
+   * follow active locale. Called once per render — fine to redeclare.
+   */
+  const resolveCallbackError = (
+    code: string | null | undefined
+  ): string | null => {
+    if (!code) return null;
+    switch (code) {
+      case "account_deactivated":
+        return t("auth.accountDeactivated");
+      case "account_not_registered":
+        return t("auth.accountNotRegistered");
+      case "auth_callback_error":
+        return t("auth.callbackError");
+      default:
+        // Unknown error codes — fallback ke generic. Kalau mau lebih detail,
+        // tambah case di sini.
+        return t("auth.genericError");
+    }
+  };
 
   const callbackErrorMessage = resolveCallbackError(error);
 
@@ -176,24 +201,4 @@ export function LoginForm({ returnTo, error }: LoginFormProps) {
       </CardContent>
     </Card>
   );
-}
-
-// ------------------------------------------------------------------
-// Error code → i18n message resolver
-// ------------------------------------------------------------------
-
-function resolveCallbackError(code: string | null | undefined): string | null {
-  if (!code) return null;
-  switch (code) {
-    case "account_deactivated":
-      return t("auth.accountDeactivated");
-    case "account_not_registered":
-      return t("auth.accountNotRegistered");
-    case "auth_callback_error":
-      return t("auth.callbackError");
-    default:
-      // Unknown error codes — fallback ke generic. Kalau mau lebih detail,
-      // tambah case di sini.
-      return t("auth.genericError");
-  }
 }

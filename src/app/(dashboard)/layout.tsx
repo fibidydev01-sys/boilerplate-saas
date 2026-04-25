@@ -15,7 +15,7 @@ import {
   LocaleSwitcher,
 } from "@/core/layout";
 import { appConfig, brandingConfig } from "@/config";
-import { t } from "@/core/i18n";
+import { useTranslation } from "@/core/i18n";
 
 /**
  * DashboardLayout — auth guard + layout utama.
@@ -36,6 +36,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const pathname = usePathname();
   const authListenerSetup = useRef(false);

@@ -13,9 +13,10 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FullPageLoader } from "@/core/components";
 import { appConfig } from "@/config";
-import { t, type TranslationKey } from "@/core/i18n";
+import { useTranslation, type TranslationKey } from "@/core/i18n";
 
 export default function AdminPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { user, hasFetched } = useAuth();
   const canAccessAdmin = usePermission("admin:access");

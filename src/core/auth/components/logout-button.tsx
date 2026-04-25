@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/core/components";
 import { useAuthStore } from "@/core/auth/store";
 import { appConfig } from "@/config";
-import { t } from "@/core/i18n";
+import { useTranslation } from "@/core/i18n";
 
 interface LogoutButtonProps {
   variant?: "default" | "ghost" | "outline" | "destructive";
@@ -24,6 +24,7 @@ export function LogoutButton({
   showText = true,
   className,
 }: LogoutButtonProps) {
+  const { t } = useTranslation();
   const router = useRouter();
   const { logout } = useAuthStore();
   const [showDialog, setShowDialog] = useState(false);

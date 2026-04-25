@@ -21,7 +21,7 @@ import {
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
-import { t } from "@/core/i18n";
+import { useTranslation } from "@/core/i18n";
 import type { CredentialStatus } from "../types";
 
 interface LSStatusCardProps {
@@ -41,6 +41,7 @@ interface LSStatusCardProps {
  * Action: disconnect (pake ConfirmDialog karena destructive).
  */
 export function LSStatusCard({ status, onDisconnected }: LSStatusCardProps) {
+  const { t } = useTranslation();
   const [showConfirm, setShowConfirm] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
 

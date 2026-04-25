@@ -14,7 +14,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { ROUTES } from "@/core/constants";
-import { t } from "@/core/i18n";
+import { useTranslation } from "@/core/i18n";
 import { ProductCard } from "./product-card";
 import type { Product, LSErrorCode } from "../types";
 
@@ -28,12 +28,44 @@ type FetchState =
 /**
  * Products grid — self-contained.
  *
- * Handles 4 states: loading, not-connected, error, empty, loaded.
+ * Handles 5 states: loading, not-connected, error, empty, loaded.
  * Uses fetch pattern langsung (tanpa SWR/react-query) untuk hindari
  * extra deps — sudah cukup untuk single-fetch use case.
  */
 export function ProductsGrid() {
+  const { t } = useTranslation();
   const [state, setState] = useState<FetchState>({ kind: "loading" });
+
+  /**
+   * Map error code dari API → i18n message.
+   *
+   * Defined inside component (closure over hooked `t`) so messages follow
+   * active locale. Re-created per render — fine for non-perf-critical
+   * mapping called only on error paths.
+   */
+  const mapErrorCode = useCallback(
+    (code: LSErrorCode): string => {
+      switch (code) {
+        case "invalid_credentials":
+          return t("commerce.errorInvalidCredentials");
+        case "rate_limited":
+          return t("commerce.errorRateLimited");
+        case "forbidden":
+          return t("commerce.errorForbidden");
+        case "network_error":
+          return t("commerce.errorNetwork");
+        case "save_failed":
+          return t("commerce.errorSaveFailed");
+        case "decrypt_failed":
+          return t("commerce.errorDecryptFailed");
+        case "not_connected":
+          return t("commerce.errorNotConnected");
+        default:
+          return t("commerce.errorApiGeneric");
+      }
+    },
+    [t]
+  );
 
   const fetchProducts = useCallback(async () => {
     setState({ kind: "loading" });
@@ -64,7 +96,7 @@ export function ProductsGrid() {
       console.error("Fetch products error:", err);
       setState({ kind: "error", message: t("commerce.errorNetwork") });
     }
-  }, []);
+  }, [mapErrorCode, t]);
 
   useEffect(() => {
     fetchProducts();
@@ -178,29 +210,4 @@ export function ProductsGrid() {
       </div>
     </div>
   );
-}
-
-// --------------------------------------------------------------------
-// Helper (duplicated across form for now — ok for small set)
-// --------------------------------------------------------------------
-
-function mapErrorCode(code: LSErrorCode): string {
-  switch (code) {
-    case "invalid_credentials":
-      return t("commerce.errorInvalidCredentials");
-    case "rate_limited":
-      return t("commerce.errorRateLimited");
-    case "forbidden":
-      return t("commerce.errorForbidden");
-    case "network_error":
-      return t("commerce.errorNetwork");
-    case "save_failed":
-      return t("commerce.errorSaveFailed");
-    case "decrypt_failed":
-      return t("commerce.errorDecryptFailed");
-    case "not_connected":
-      return t("commerce.errorNotConnected");
-    default:
-      return t("commerce.errorApiGeneric");
-  }
 }

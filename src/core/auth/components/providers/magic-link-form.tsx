@@ -24,7 +24,7 @@ import {
 import { createClient } from "@/core/lib/supabase/client";
 import { magicLinkSchema, type MagicLinkFormData } from "@/core/lib/validators";
 import { appConfig } from "@/config";
-import { t } from "@/core/i18n";
+import { useTranslation } from "@/core/i18n";
 
 interface MagicLinkFormProps {
   returnTo?: string | null;
@@ -41,6 +41,7 @@ interface MagicLinkFormProps {
 }
 
 export function MagicLinkForm({ returnTo, mode = "login" }: MagicLinkFormProps) {
+  const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [sent, setSent] = useState(false);

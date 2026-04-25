@@ -9,9 +9,10 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { brandingConfig } from "@/config";
-import { t, type TranslationKey } from "@/core/i18n";
+import { useTranslation, type TranslationKey } from "@/core/i18n";
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
 
   const greeting = () => {

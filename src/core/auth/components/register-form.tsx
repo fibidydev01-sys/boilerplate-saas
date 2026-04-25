@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { appConfig } from "@/config";
 import { ROUTES } from "@/core/constants";
-import { t } from "@/core/i18n";
+import { useTranslation } from "@/core/i18n";
 import {
   EmailPasswordRegisterForm,
   MagicLinkForm,
@@ -31,6 +31,7 @@ interface RegisterFormProps {
  * ("Create account" / equivalent) yang relevant untuk konteks halaman.
  */
 export function RegisterForm({ returnTo }: RegisterFormProps) {
+  const { t } = useTranslation();
   const passwordProviders = appConfig.auth.passwordProviders;
   const oauthProviders = appConfig.auth.oauthProviders;
 

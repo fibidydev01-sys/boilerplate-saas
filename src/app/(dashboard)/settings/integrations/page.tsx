@@ -2,9 +2,10 @@
 
 import { Plug } from "lucide-react";
 import { IntegrationPanel } from "@/modules/commerce";
-import { t } from "@/core/i18n";
+import { useTranslation } from "@/core/i18n";
 
 export default function IntegrationsPage() {
+  const { t } = useTranslation();
   return (
     <div className="space-y-6">
       {/* Header */}

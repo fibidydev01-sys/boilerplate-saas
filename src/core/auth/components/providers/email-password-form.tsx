@@ -33,7 +33,7 @@ import {
 } from "@/core/auth/services";
 import { loginSchema, type LoginFormData } from "@/core/lib/validators";
 import { resolvePostLoginRedirect } from "@/config";
-import { t } from "@/core/i18n";
+import { useTranslation } from "@/core/i18n";
 
 interface EmailPasswordFormProps {
   /**
@@ -43,6 +43,7 @@ interface EmailPasswordFormProps {
 }
 
 export function EmailPasswordForm({ returnTo }: EmailPasswordFormProps) {
+  const { t } = useTranslation();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);

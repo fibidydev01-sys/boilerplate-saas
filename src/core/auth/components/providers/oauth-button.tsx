@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
 import { createClient } from "@/core/lib/supabase/client";
-import { t } from "@/core/i18n";
+import { useTranslation } from "@/core/i18n";
 import type { Provider } from "@supabase/supabase-js";
 
 interface OAuthButtonProps {
@@ -23,6 +23,7 @@ export function OAuthButton({
   icon,
   returnTo,
 }: OAuthButtonProps) {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

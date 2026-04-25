@@ -31,7 +31,7 @@ import { useAuthStore } from "@/core/auth/store";
 import { logActivity, ActivityAction } from "@/core/auth/services";
 import { registerSchema, type RegisterFormData } from "@/core/lib/validators";
 import { appConfig, resolvePostLoginRedirect } from "@/config";
-import { t } from "@/core/i18n";
+import { useTranslation } from "@/core/i18n";
 
 interface EmailPasswordRegisterFormProps {
   returnTo?: string | null;
@@ -52,6 +52,7 @@ interface EmailPasswordRegisterFormProps {
 export function EmailPasswordRegisterForm({
   returnTo,
 }: EmailPasswordRegisterFormProps) {
+  const { t } = useTranslation();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);

@@ -41,7 +41,7 @@ import {
 } from "@/core/lib/validators";
 import { appConfig } from "@/config";
 import { ROUTES } from "@/core/constants";
-import { t } from "@/core/i18n";
+import { useTranslation } from "@/core/i18n";
 
 /**
  * ResetPasswordForm — halaman post-click email link.
@@ -58,6 +58,7 @@ import { t } from "@/core/i18n";
  * Form card keep page-specific title untuk context halaman.
  */
 export function ResetPasswordForm() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);

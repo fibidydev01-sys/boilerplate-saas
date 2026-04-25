@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { WifiOff, Wifi, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { t } from "@/core/i18n";
+import { useTranslation } from "@/core/i18n";
 
 /**
  * OfflineDetector — toast persistent buat network status.
@@ -32,6 +32,7 @@ type AlertState =
   | { kind: "reconnected" };
 
 export function OfflineDetector() {
+  const { t } = useTranslation();
   const [state, setState] = useState<AlertState>({ kind: "hidden" });
 
   useEffect(() => {

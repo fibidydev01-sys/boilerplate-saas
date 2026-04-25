@@ -5,9 +5,10 @@ import { User, Mail, Shield, Construction } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getInitials } from "@/core/lib/utils";
-import { t, type TranslationKey } from "@/core/i18n";
+import { useTranslation, type TranslationKey } from "@/core/i18n";
 
 export default function ProfilePage() {
+  const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
 
   if (!user) return null;

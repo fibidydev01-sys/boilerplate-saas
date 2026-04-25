@@ -2,9 +2,10 @@
 
 import { BarChart3, Construction } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { t } from "@/core/i18n";
+import { useTranslation } from "@/core/i18n";
 
 export default function OverviewPage() {
+  const { t } = useTranslation();
   return (
     <div className="space-y-6">
       {/* Header */}

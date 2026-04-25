@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Package, ExternalLink } from "lucide-react";
-import { t } from "@/core/i18n";
+import { useTranslation } from "@/core/i18n";
 import type { Product } from "../types";
 
 interface ProductCardProps {
@@ -11,6 +11,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const { t } = useTranslation();
   const hasImage = !!product.thumbUrl;
   const hasMultipleVariants = product.variants.length > 1;
   const isPublished = product.status === "published";

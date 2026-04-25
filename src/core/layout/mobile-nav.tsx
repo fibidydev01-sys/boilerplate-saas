@@ -6,9 +6,10 @@ import { useAuthStore } from "@/core/auth/store";
 import { cn } from "@/core/lib/utils";
 import { getAllNavItems } from "./nav-config";
 import { isAdminRole } from "@/config";
-import { t } from "@/core/i18n";
+import { useTranslation } from "@/core/i18n";
 
 export function MobileBottomNav() {
+  const { t } = useTranslation();
   const pathname = usePathname();
   const user = useAuthStore((state) => state.user);
   const userIsAdmin = user?.role ? isAdminRole(user.role) : false;

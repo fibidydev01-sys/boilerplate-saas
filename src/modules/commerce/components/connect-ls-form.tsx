@@ -38,7 +38,7 @@ import {
   type LSApiKeyInput,
   type LSApiKeyFormData,
 } from "@/core/lib/validators";
-import { t } from "@/core/i18n";
+import { useTranslation } from "@/core/i18n";
 import type { CredentialStatus, LSErrorCode } from "../types";
 
 interface ConnectLSFormProps {
@@ -64,6 +64,7 @@ interface ConnectLSFormProps {
  * butuh tau keduanya.
  */
 export function ConnectLSForm({ onConnected }: ConnectLSFormProps) {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showKey, setShowKey] = useState(false);
@@ -72,6 +73,34 @@ export function ConnectLSForm({ onConnected }: ConnectLSFormProps) {
     resolver: zodResolver(lsApiKeySchema),
     defaultValues: { apiKey: "", isTestMode: false },
   });
+
+  /**
+   * Map error code dari API → i18n message.
+   *
+   * Defined inside component (closure over hooked `t`) so the message
+   * follows the active locale. Re-created on each render — fine for a
+   * non-perf-critical mapping.
+   */
+  const mapErrorCode = (code: LSErrorCode): string => {
+    switch (code) {
+      case "invalid_credentials":
+        return t("commerce.errorInvalidCredentials");
+      case "rate_limited":
+        return t("commerce.errorRateLimited");
+      case "forbidden":
+        return t("commerce.errorForbidden");
+      case "network_error":
+        return t("commerce.errorNetwork");
+      case "save_failed":
+        return t("commerce.errorSaveFailed");
+      case "decrypt_failed":
+        return t("commerce.errorDecryptFailed");
+      case "not_connected":
+        return t("commerce.errorNotConnected");
+      default:
+        return t("commerce.errorApiGeneric");
+    }
+  };
 
   const onSubmit = async (data: LSApiKeyFormData) => {
     setError(null);
@@ -219,29 +248,4 @@ export function ConnectLSForm({ onConnected }: ConnectLSFormProps) {
       </CardContent>
     </Card>
   );
-}
-
-/**
- * Map error code dari API → i18n message.
- * Shared helper — bisa di-extract ke utils kalau dipake di tempat lain.
- */
-function mapErrorCode(code: LSErrorCode): string {
-  switch (code) {
-    case "invalid_credentials":
-      return t("commerce.errorInvalidCredentials");
-    case "rate_limited":
-      return t("commerce.errorRateLimited");
-    case "forbidden":
-      return t("commerce.errorForbidden");
-    case "network_error":
-      return t("commerce.errorNetwork");
-    case "save_failed":
-      return t("commerce.errorSaveFailed");
-    case "decrypt_failed":
-      return t("commerce.errorDecryptFailed");
-    case "not_connected":
-      return t("commerce.errorNotConnected");
-    default:
-      return t("commerce.errorApiGeneric");
-  }
 }

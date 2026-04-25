@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { t } from "@/core/i18n";
+import { useTranslation } from "@/core/i18n";
 
 /**
  * ConfirmDialog — reusable confirmation dialog.
@@ -53,6 +53,7 @@ export function ConfirmDialog({
   loading,
   onConfirm,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation();
   const resolvedLabel = confirmLabel ?? confirmText ?? t("common.confirm");
   const resolvedLoading = isLoading ?? loading ?? false;
 

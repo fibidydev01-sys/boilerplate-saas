@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { t } from "@/core/i18n";
+import { useTranslation } from "@/core/i18n";
 import { ConnectLSForm } from "./connect-ls-form";
 import { LSStatusCard } from "./ls-status-card";
 import type { CredentialStatus } from "../types";
@@ -17,6 +17,7 @@ import type { CredentialStatus } from "../types";
  * supaya state sync tanpa refetch.
  */
 export function IntegrationPanel() {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<CredentialStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 

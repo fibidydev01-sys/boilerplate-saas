@@ -36,7 +36,7 @@ import {
   type ForgotPasswordFormData,
 } from "@/core/lib/validators";
 import { ROUTES } from "@/core/constants";
-import { t } from "@/core/i18n";
+import { useTranslation } from "@/core/i18n";
 
 /**
  * ForgotPasswordForm — send reset password link via Supabase PKCE flow.
@@ -60,6 +60,7 @@ import { t } from "@/core/i18n";
  * Form card keep page-specific title untuk context halaman.
  */
 export function ForgotPasswordForm() {
+  const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [sent, setSent] = useState(false);

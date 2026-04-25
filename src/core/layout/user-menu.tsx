@@ -16,9 +16,10 @@ import { useAuthStore } from "@/core/auth/store";
 import { getInitials } from "@/core/lib/utils";
 import { ROUTES } from "@/core/constants";
 import { appConfig } from "@/config";
-import { t, type TranslationKey } from "@/core/i18n";
+import { useTranslation, type TranslationKey } from "@/core/i18n";
 
 export function UserMenu() {
+  const { t } = useTranslation();
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const storeLogout = useAuthStore((state) => state.logout);

@@ -4,9 +4,10 @@ import Link from "next/link";
 import { Settings, Plug, ChevronRight, Construction } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ROUTES } from "@/core/constants";
-import { t } from "@/core/i18n";
+import { useTranslation } from "@/core/i18n";
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   return (
     <div className="space-y-6">
       {/* Header */}
