@@ -99,17 +99,17 @@ export default function DashboardLayout({
 
       <div className="flex flex-1 flex-col md:ml-64">
         <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background px-4">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="relative w-8 h-8">
+          <Link href="/" className="flex items-center gap-2 min-w-0">
+            <div className="relative w-8 h-8 flex-shrink-0">
               <Image
                 src={brandingConfig.assets.logoSmall}
-                alt={brandingConfig.shortName}
+                alt={brandingConfig.name}
                 fill
                 className="object-contain"
               />
             </div>
-            <span className="font-semibold text-sm md:text-base">
-              {brandingConfig.shortName}
+            <span className="font-semibold text-sm md:text-base truncate">
+              {brandingConfig.name}
             </span>
           </Link>
 

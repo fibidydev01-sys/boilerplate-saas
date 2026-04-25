@@ -67,11 +67,6 @@ export const brandingConfig = {
    * Dipake di pricing card "Buy" button. Kalau kosong, button fallback
    * ke "#pricing" anchor (aman, gak broken).
    *
-   * Contoh value:
-   *   "https://yourname.gumroad.com/l/your-product"
-   *   "https://yourapp.lemonsqueezy.com/buy/abc-123"
-   *   "https://buy.stripe.com/abc123"
-   *
    * Default: "" (empty) — buyer wajib set ini saat go-live.
    */
   purchaseUrl: process.env.NEXT_PUBLIC_APP_PURCHASE_URL ?? "",
@@ -85,12 +80,21 @@ export const brandingConfig = {
    *   /branding/favicon.ico           — multi-size favicon
    *   /branding/apple-touch-icon.png  — 180x180 (iOS home screen)
    *   /branding/icon-{48,72,96,144,192,512}.png — PWA manifest icons
+   *
+   * authBackground:
+   *   Background image untuk auth pages (50/50 split layout).
+   *   Tampil di panel kiri di desktop, hidden di mobile.
+   *   Bisa pake remote URL (CDN) atau local path (/branding/auth-bg.jpg).
+   *   Default: Cloudinary stock — buyer ganti dengan brand-specific image.
    */
   assets: {
     logo: "/branding/logo.png",
     logoSmall: "/branding/logo-sm.png",
     favicon: "/branding/favicon.ico",
     appleTouchIcon: "/branding/apple-touch-icon.png",
+    authBackground:
+      process.env.NEXT_PUBLIC_APP_AUTH_BG ??
+      "https://res.cloudinary.com/dxxds8jkx/image/upload/v1777108648/background_h7lslb.jpg",
   },
 
   /**

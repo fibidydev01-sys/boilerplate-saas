@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { brandingConfig } from "@/config";
 import { Separator } from "@/components/ui/separator";
 import { footerContent } from "../../content/layout";
@@ -14,11 +15,14 @@ export function MarketingFooter() {
               href="/"
               className="flex items-center gap-2 text-lg font-bold"
             >
-              <span className="inline-flex size-8 items-center justify-center rounded-lg bg-foreground text-background">
-                <span className="text-sm">
-                  {brandingConfig.name.charAt(0).toUpperCase()}
-                </span>
-              </span>
+              <div className="relative w-8 h-8">
+                <Image
+                  src={brandingConfig.assets.logoSmall}
+                  alt={brandingConfig.shortName}
+                  fill
+                  className="object-contain"
+                />
+              </div>
               <span className="tracking-tight">{brandingConfig.name}</span>
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { brandingConfig } from "@/config";
@@ -15,10 +16,14 @@ export function FinalCtaSection() {
         className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_bottom,_hsl(var(--primary)/0.1),_transparent_65%)]"
       />
       <div className="mx-auto max-w-3xl px-4 text-center">
-        <div className="mb-6 inline-flex size-14 items-center justify-center rounded-2xl bg-foreground text-background">
-          <span className="text-2xl font-bold">
-            {brandingConfig.name.charAt(0).toUpperCase()}
-          </span>
+        {/* Brand logo — match auth page pattern (full logo, larger) */}
+        <div className="relative mx-auto mb-6 h-16 w-16">
+          <Image
+            src={brandingConfig.assets.logo}
+            alt={brandingConfig.name}
+            fill
+            className="object-contain"
+          />
         </div>
 
         <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">

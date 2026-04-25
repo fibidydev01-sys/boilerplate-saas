@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,13 +26,17 @@ export function MarketingHeader() {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-        {/* Logo */}
+        {/* Logo — match dashboard header pattern (w-8 h-8 logoSmall + shortName) */}
         <Link href="/" className="flex items-center gap-2 text-lg font-bold">
-          <span className="inline-flex size-8 items-center justify-center rounded-lg bg-foreground text-background">
-            <span className="text-sm">
-              {brandingConfig.name.charAt(0).toUpperCase()}
-            </span>
-          </span>
+          <div className="relative w-8 h-8">
+            <Image
+              src={brandingConfig.assets.logoSmall}
+              alt={brandingConfig.shortName}
+              fill
+              className="object-contain"
+              priority
+            />
+          </div>
           <span className="tracking-tight">{brandingConfig.name}</span>
         </Link>
 
@@ -68,7 +73,17 @@ export function MarketingHeader() {
           </SheetTrigger>
           <SheetContent side="right" className="w-full sm:max-w-sm">
             <SheetHeader>
-              <SheetTitle>{brandingConfig.name}</SheetTitle>
+              <SheetTitle className="flex items-center gap-2">
+                <div className="relative w-6 h-6">
+                  <Image
+                    src={brandingConfig.assets.logoSmall}
+                    alt={brandingConfig.shortName}
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+                <span>{brandingConfig.name}</span>
+              </SheetTitle>
             </SheetHeader>
             <nav className="mt-8 flex flex-col gap-1">
               {headerContent.navItems.map((item) => (

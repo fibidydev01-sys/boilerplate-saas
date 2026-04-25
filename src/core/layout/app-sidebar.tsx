@@ -17,18 +17,18 @@ export function AppSidebar() {
 
   return (
     <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-50 border-r bg-background">
-      {/* Logo area */}
+      {/* Logo area — match dashboard header pattern (full name + truncate) */}
       <div className="flex h-14 items-center gap-3 border-b px-4">
         <div className="relative w-8 h-8 flex-shrink-0">
           <Image
             src={brandingConfig.assets.logoSmall}
-            alt={brandingConfig.shortName}
+            alt={brandingConfig.name}
             fill
             className="object-contain"
           />
         </div>
         <span className="font-semibold text-sm truncate">
-          {brandingConfig.shortName}
+          {brandingConfig.name}
         </span>
       </div>
 
