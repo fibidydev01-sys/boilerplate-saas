@@ -13,11 +13,26 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useAuth } from "@/core/auth/hooks";
-import { LocaleSwitcher } from "@/core/layout";
 import { brandingConfig } from "@/config";
 import { cn } from "@/core/lib/utils";
 import { headerContent } from "../../content/layout";
 
+/**
+ * Marketing header.
+ *
+ * Locale switcher intentionally NOT mounted here — the landing surface
+ * (hero, features, pricing, FAQ, legal pages) is authored in English
+ * and not wired to the i18n dictionary. Showing a language toggle that
+ * doesn't actually translate the page is a worse UX than not showing
+ * one at all.
+ *
+ * The switcher lives in two places where i18n IS wired:
+ *   - Auth layout  (login, register, forgot/reset password)
+ *   - Dashboard layout (post-auth app surface)
+ *
+ * If you decide to translate marketing later, add the switcher back
+ * here AND register marketing copy in src/core/i18n/locales/.
+ */
 export function MarketingHeader() {
   const { user, isLoading } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -27,7 +42,7 @@ export function MarketingHeader() {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-        {/* Logo — match dashboard header pattern (w-8 h-8 logoSmall + shortName) */}
+        {/* Logo — match dashboard header pattern (w-8 h-8 logoSmall + name) */}
         <Link href="/" className="flex items-center gap-2 text-lg font-bold">
           <div className="relative w-8 h-8">
             <Image
@@ -48,12 +63,8 @@ export function MarketingHeader() {
           ))}
         </nav>
 
-        {/* Desktop CTA + locale switcher */}
+        {/* Desktop CTA */}
         <div className="hidden items-center gap-3 md:flex">
-          {/* "full" variant shows EN/ID code — landing has the room for it
-              and the explicit label helps visitors who don't recognize the
-              globe icon as a language switcher. */}
-          <LocaleSwitcher variant="full" />
           <Button
             asChild
             variant={user ? "default" : "outline"}
@@ -99,12 +110,6 @@ export function MarketingHeader() {
                 />
               ))}
               <div className="mt-6 flex flex-col gap-2 border-t border-border pt-6">
-                {/* Locale switcher centered above CTA buttons in the mobile
-                    sheet. "full" variant so the active locale code (EN/ID)
-                    is visible — picker doesn't have to be opened to see it. */}
-                <div className="flex justify-center pb-2">
-                  <LocaleSwitcher variant="full" />
-                </div>
                 <Button asChild variant="outline" className="w-full">
                   <Link href={cta.href} onClick={() => setMobileOpen(false)}>
                     {cta.label}

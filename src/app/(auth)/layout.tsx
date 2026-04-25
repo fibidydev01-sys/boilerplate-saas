@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { LocaleSwitcher } from "@/core/layout";
 import { brandingConfig } from "@/config";
 
 /**
@@ -7,13 +8,23 @@ import { brandingConfig } from "@/config";
  *
  * Desktop (md+):
  *   ┌──────────────────────┬──────────────────────┐
- *   │  IMAGE PANEL (50%)   │  FORM PANEL (50%)    │
- *   │  + brand overlay     │                      │
+ *   │  IMAGE PANEL (50%)   │  [🌐 EN]  ←top-right │
+ *   │  + brand overlay     │  FORM PANEL (50%)    │
  *   └──────────────────────┴──────────────────────┘
  *
  * Mobile (<md):
  *   Image panel hidden — form takes full width.
- *   Form pages render their own logo card on mobile (existing pattern).
+ *   LocaleSwitcher tetap muncul di pojok kanan atas form.
+ *
+ * Why LocaleSwitcher lives here (and not in marketing-header.tsx):
+ *   Auth pages — login, register, forgot-password, reset-password —
+ *   are fully wired to the i18n dictionary. Every label, validation
+ *   message, error string, and button copy goes through `t()`.
+ *   Toggling locale here actually translates the page.
+ *
+ *   Marketing surfaces (landing, pricing, legal) are authored in
+ *   English and not in the i18n dictionary, so a switcher there
+ *   would be misleading. Dashboard surface also has its own switcher.
  *
  * Branding:
  *   - Background image: brandingConfig.assets.authBackground
@@ -78,8 +89,18 @@ export default function AuthLayout({
         </div>
       </div>
 
-      {/* RIGHT — Form panel */}
-      <main className="flex items-center justify-center bg-background p-6 md:p-10">
+      {/* RIGHT — Form panel
+          `relative` → anchor untuk LocaleSwitcher absolute di pojok kanan atas. */}
+      <main className="relative flex items-center justify-center bg-background p-6 md:p-10">
+        {/* Locale switcher — top-right corner of the form panel.
+            "full" variant shows EN/ID code so the active locale is visible
+            without opening the menu. Auth pages have plenty of horizontal
+            room, and the explicit label helps non-technical users who
+            don't recognize the globe icon as a language toggle. */}
+        <div className="absolute top-4 right-4 md:top-6 md:right-6 z-10">
+          <LocaleSwitcher variant="full" />
+        </div>
+
         <div className="w-full max-w-md">{children}</div>
       </main>
     </div>
