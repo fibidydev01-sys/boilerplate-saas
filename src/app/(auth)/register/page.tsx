@@ -4,17 +4,24 @@ import { RegisterForm } from "@/core/auth";
 import { fetchActiveProfile } from "@/core/auth/services";
 import {
   appConfig,
-  brandingConfig,
   resolvePostLoginRedirect,
 } from "@/config";
 import { ROUTES } from "@/core/constants";
 import { t } from "@/core/i18n";
+import { getServerLocale } from "@/core/i18n/get-locale";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: t("auth.registerTitle"),
-  description: t("auth.registerSubtitle"),
-};
+/**
+ * Dynamic metadata — resolves locale from cookie at request time so the
+ * browser tab title follows the user's selected language.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getServerLocale();
+  return {
+    title: t("auth.registerTitle", undefined, locale),
+    description: t("auth.registerSubtitle", undefined, locale),
+  };
+}
 
 interface RegisterPageProps {
   searchParams: Promise<{ returnTo?: string }>;

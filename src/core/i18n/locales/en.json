@@ -28,6 +28,9 @@
     "connected": "Connected",
     "notConnected": "Not connected"
   },
+  "localeSwitcher": {
+    "ariaLabel": "Change language"
+  },
   "auth": {
     "emailLabel": "Email",
     "passwordLabel": "Password",

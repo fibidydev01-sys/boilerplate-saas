@@ -3,7 +3,9 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/core/auth";
 import { OfflineDetector } from "@/core/components";
-import { appConfig, brandingConfig } from "@/config";
+import { LocaleProvider } from "@/core/i18n";
+import { getServerLocale } from "@/core/i18n/get-locale";
+import { brandingConfig } from "@/config";
 
 export const metadata: Metadata = {
   title: {
@@ -59,13 +61,34 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+/**
+ * Root layout — async to read the locale cookie at request time.
+ *
+ * Two important effects of going async + reading cookies here:
+ *   1. <html lang> follows the user's selected locale (a11y + SEO win)
+ *   2. Every page becomes dynamic by default (cookies() opts out of
+ *      static rendering). Acceptable trade-off for a dashboard-heavy
+ *      app where most pages are auth-gated and dynamic anyway.
+ *
+ * Provider stack (outermost → innermost):
+ *   LocaleProvider  — owns active locale, must wrap every consumer of
+ *                     useTranslation() / useLocale()
+ *   AuthProvider    — currently a passthrough; placed inside Locale so
+ *                     future auth UI can call t() if needed
+ *   children        — page tree
+ *   OfflineDetector — sibling under AuthProvider; uses t() so MUST be
+ *                     inside LocaleProvider
+ *   Toaster         — locale-agnostic; sits outside the auth tree
+ */
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getServerLocale();
+
   return (
-    <html lang={appConfig.locale.default} suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <link
           rel="apple-touch-icon"
@@ -92,10 +115,12 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased">
-        <AuthProvider>
-          {children}
-          <OfflineDetector />
-        </AuthProvider>
+        <LocaleProvider initialLocale={locale}>
+          <AuthProvider>
+            {children}
+            <OfflineDetector />
+          </AuthProvider>
+        </LocaleProvider>
         <Toaster position="top-center" richColors />
       </body>
     </html>

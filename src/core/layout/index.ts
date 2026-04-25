@@ -6,6 +6,7 @@ export { Header } from "./header";
 export { AppSidebar } from "./app-sidebar";
 export { MobileBottomNav } from "./mobile-nav";
 export { UserMenu } from "./user-menu";
+export { LocaleSwitcher } from "./locale-switcher";
 export {
   getNavItems,
   getAllNavItems,

@@ -13,6 +13,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useAuth } from "@/core/auth/hooks";
+import { LocaleSwitcher } from "@/core/layout";
 import { brandingConfig } from "@/config";
 import { cn } from "@/core/lib/utils";
 import { headerContent } from "../../content/layout";
@@ -47,8 +48,12 @@ export function MarketingHeader() {
           ))}
         </nav>
 
-        {/* Desktop CTA */}
+        {/* Desktop CTA + locale switcher */}
         <div className="hidden items-center gap-3 md:flex">
+          {/* "full" variant shows EN/ID code — landing has the room for it
+              and the explicit label helps visitors who don't recognize the
+              globe icon as a language switcher. */}
+          <LocaleSwitcher variant="full" />
           <Button
             asChild
             variant={user ? "default" : "outline"}
@@ -94,6 +99,12 @@ export function MarketingHeader() {
                 />
               ))}
               <div className="mt-6 flex flex-col gap-2 border-t border-border pt-6">
+                {/* Locale switcher centered above CTA buttons in the mobile
+                    sheet. "full" variant so the active locale code (EN/ID)
+                    is visible — picker doesn't have to be opened to see it. */}
+                <div className="flex justify-center pb-2">
+                  <LocaleSwitcher variant="full" />
+                </div>
                 <Button asChild variant="outline" className="w-full">
                   <Link href={cta.href} onClick={() => setMobileOpen(false)}>
                     {cta.label}

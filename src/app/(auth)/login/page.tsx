@@ -4,12 +4,26 @@ import { LoginForm } from "@/core/auth";
 import { fetchActiveProfile } from "@/core/auth/services";
 import { brandingConfig, resolvePostLoginRedirect } from "@/config";
 import { t } from "@/core/i18n";
+import { getServerLocale } from "@/core/i18n/get-locale";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: t("common.login"),
-  description: t("dashboard.welcomeMessage", { appName: brandingConfig.name }),
-};
+/**
+ * Dynamic metadata — resolves locale from cookie at request time so the
+ * browser tab title follows the user's selected language. Replaces the
+ * previous static `export const metadata` which would have been frozen
+ * to appConfig.locale.default at module load.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getServerLocale();
+  return {
+    title: t("common.login", undefined, locale),
+    description: t(
+      "dashboard.welcomeMessage",
+      { appName: brandingConfig.name },
+      locale
+    ),
+  };
+}
 
 interface LoginPageProps {
   searchParams: Promise<{ returnTo?: string; error?: string }>;

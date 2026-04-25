@@ -1,11 +1,19 @@
 import { ResetPasswordForm } from "@/core/auth";
 import { t } from "@/core/i18n";
+import { getServerLocale } from "@/core/i18n/get-locale";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: t("auth.resetPasswordTitle"),
-  description: t("auth.resetPasswordSubtitle"),
-};
+/**
+ * Dynamic metadata — resolves locale from cookie at request time so the
+ * browser tab title follows the user's selected language.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getServerLocale();
+  return {
+    title: t("auth.resetPasswordTitle", undefined, locale),
+    description: t("auth.resetPasswordSubtitle", undefined, locale),
+  };
+}
 
 /**
  * Reset password page.

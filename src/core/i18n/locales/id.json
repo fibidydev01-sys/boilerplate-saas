@@ -28,6 +28,9 @@
     "connected": "Terhubung",
     "notConnected": "Belum terhubung"
   },
+  "localeSwitcher": {
+    "ariaLabel": "Ganti bahasa"
+  },
   "auth": {
     "emailLabel": "Email",
     "passwordLabel": "Password",

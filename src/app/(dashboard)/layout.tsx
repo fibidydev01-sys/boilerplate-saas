@@ -8,7 +8,12 @@ import { useAuth } from "@/core/auth/hooks";
 import { useAuthStore } from "@/core/auth/store";
 import { createClient } from "@/core/lib/supabase/client";
 import { FullPageLoader } from "@/core/components";
-import { MobileBottomNav, AppSidebar, UserMenu } from "@/core/layout";
+import {
+  MobileBottomNav,
+  AppSidebar,
+  UserMenu,
+  LocaleSwitcher,
+} from "@/core/layout";
 import { appConfig, brandingConfig } from "@/config";
 import { t } from "@/core/i18n";
 
@@ -115,6 +120,8 @@ export default function DashboardLayout({
 
           <div className="flex-1" />
 
+          {/* Locale switcher — compact (icon only) to fit alongside the user menu */}
+          <LocaleSwitcher variant="compact" />
           <UserMenu />
         </header>
 
